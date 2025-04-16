@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Python bug fixing service - Database bug fixes by expert Python developer">
+    <meta name="keywords" content="Python, debugging, bug fixing, database, SQL injection, connection leaks">
+    <title>Database Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css" id="main-css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>hljs.highlightAll();</script>
+    
+    <!-- Add script to handle path issues when loading locally -->
+    <script>
+        // Fix CSS path when loading from file:// protocol
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.protocol === 'file:') {
+                // We're loading from a local file
+                var cssLink = document.getElementById('main-css');
+                var currentPath = window.location.pathname;
+                var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                cssLink.href = directoryPath + '/../styles.css';
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Database Bug Fixes</h1>
+            <p>Solving common Python database interaction problems</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Database Bug Fixes
+        </div>
+        
+        <section class="example-overview">
+            <h2>Common Database Issues in Python</h2>
+            <p>Working with databases in Python applications often introduces specific challenges and bugs. From SQL injection vulnerabilities to connection management issues, these problems can lead to security breaches, resource leaks, and performance bottlenecks.</p>
+            <p>Below, I demonstrate how I diagnose and fix the most common database-related bugs in Python applications, ensuring your data remains secure, your code performs optimally, and your application stays stable.</p>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Database Bug Fixes</h2>
+            
+            <div class="bug-example">
+                <h3>Bug #1: SQL Injection Vulnerability</h3>
+                
+                <div class="bug-description">
+                    <p>One of the most dangerous database bugs is SQL injection vulnerability, where user input is directly incorporated into SQL queries without proper sanitization. This can allow attackers to manipulate the database in unintended ways.</p>
+                    <p><strong>Impact:</strong> Security breach, unauthorized data access, data loss, and potential system compromise.</p>
+                </div>
+                
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <h4>Buggy Code:</h4>
+                        <pre><code class="language-python">import sqlite3
+
+def get_user(username):
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    # VULNERABLE: Direct string formatting in SQL query
+    query = f"SELECT * FROM users WHERE username = '{username}'"
+    cursor.execute(query)
+    
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+# If attacker inputs: admin' --
+# The query becomes: SELECT * FROM users WHERE username = 'admin' --'
+# This comments out the rest of the query and could bypass authentication</code></pre>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <h4>Fixed Code:</h4>
+                        <pre><code class="language-python">import sqlite3
+
+def get_user(username):
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    # FIXED: Using parameterized queries
+    query = "SELECT * FROM users WHERE username = ?"
+    cursor.execute(query, (username,))
+    
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+# Now if someone inputs: admin' --
+# It will be treated as a literal string parameter
+# The query safely looks for a username with that exact value</code></pre>
+                    </div>
+                </div>
+                
+                <div class="explanation">
+                    <h4>Fix Explanation:</h4>
+                    <p>The bug was fixed by implementing parameterized queries instead of string formatting. Parameterized queries ensure that user input is treated as data, not executable SQL code, preventing SQL injection attacks. This is a fundamental security practice when working with databases in any language.</p>
+                </div>
+            </div>
+            
+            <div class="bug-example">
+                <h3>Bug #2: Database Connection Leaks</h3>
+                
+                <div class="bug-description">
+                    <p>Connection leaks occur when database connections are opened but not properly closed, especially during exceptions. These leaks can exhaust database connection pools and cause performance degradation or application failures.</p>
+                    <p><strong>Impact:</strong> Resource exhaustion, performance degradation, and eventual application crashes.</p>
+                </div>
+                
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <h4>Buggy Code:</h4>
+                        <pre><code class="language-python">import psycopg2
+
+def process_customer_orders(customer_id):
+    conn = psycopg2.connect(
+        dbname="orders",
+        user="app_user",
+        password="password",
+        host="localhost"
+    )
+    cursor = conn.cursor()
+    
+    # If an exception occurs here, the connection is never closed
+    cursor.execute("SELECT * FROM orders WHERE customer_id = %s", (customer_id,))
+    orders = cursor.fetchall()
+    
+    for order in orders:
+        process_order(order)
+        
+    conn.close()  # Only reached if no exceptions occur
+    return True</code></pre>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <h4>Fixed Code:</h4>
+                        <pre><code class="language-python">import psycopg2
+
+def process_customer_orders(customer_id):
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            dbname="orders",
+            user="app_user",
+            password="password",
+            host="localhost"
+        )
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM orders WHERE customer_id = %s", (customer_id,))
+        orders = cursor.fetchall()
+        
+        for order in orders:
+            process_order(order)
+            
+        return True
+    except Exception as e:
+        print(f"Error processing orders: {e}")
+        raise
+    finally:
+        # Connection is closed even if an exception occurs
+        if conn is not None:
+            conn.close()</code></pre>
+                    </div>
+                </div>
+                
+                <div class="explanation">
+                    <h4>Fix Explanation:</h4>
+                    <p>The fix uses a try-finally block to ensure that database connections are always closed, even when exceptions occur. Additionally, a null check is added to handle cases where the connection creation itself might have failed. This pattern is essential for proper resource management in database applications.</p>
+                </div>
+            </div>
+            
+            <div class="bug-example">
+                <h3>Bug #3: Inefficient Query Patterns</h3>
+                
+                <div class="bug-description">
+                    <p>Inefficient query patterns, such as N+1 query problems, can significantly degrade application performance. These occur when code executes multiple database queries in a loop instead of using more efficient bulk operations.</p>
+                    <p><strong>Impact:</strong> Poor performance, excessive database load, and slow user experience.</p>
+                </div>
+                
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <h4>Buggy Code:</h4>
+                        <pre><code class="language-python">import sqlite3
+
+def get_product_details():
+    conn = sqlite3.connect('inventory.db')
+    cursor = conn.cursor()
+    
+    # Get all product IDs
+    cursor.execute("SELECT id FROM products")
+    product_ids = [row[0] for row in cursor.fetchall()]
+    
+    products_with_categories = []
+    # N+1 problem: Executing a new query for each product
+    for product_id in product_ids:
+        cursor.execute(
+            "SELECT category_name FROM categories c "
+            "JOIN product_categories pc ON c.id = pc.category_id "
+            "WHERE pc.product_id = ?", 
+            (product_id,)
+        )
+        categories = [row[0] for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT name, price FROM products WHERE id = ?", (product_id,))
+        name, price = cursor.fetchone()
+        
+        products_with_categories.append({
+            'id': product_id,
+            'name': name,
+            'price': price,
+            'categories': categories
+        })
+    
+    conn.close()
+    return products_with_categories</code></pre>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <h4>Fixed Code:</h4>
+                        <pre><code class="language-python">import sqlite3
+
+def get_product_details():
+    conn = sqlite3.connect('inventory.db')
+    conn.row_factory = sqlite3.Row  # Enable row factory for easy dictionary access
+    cursor = conn.cursor()
+    
+    # Single query with JOINs to fetch all data efficiently
+    cursor.execute("""
+        SELECT p.id, p.name, p.price, c.category_name
+        FROM products p
+        LEFT JOIN product_categories pc ON p.id = pc.product_id
+        LEFT JOIN categories c ON pc.category_id = c.id
+        ORDER BY p.id
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Process the rows to create the product dictionary
+    products_dict = {}
+    for row in rows:
+        product_id = row['id']
+        if product_id not in products_dict:
+            products_dict[product_id] = {
+                'id': product_id,
+                'name': row['name'],
+                'price': row['price'],
+                'categories': []
+            }
+        
+        if row['category_name']:  # Handle products with no categories
+            products_dict[product_id]['categories'].append(row['category_name'])
+    
+    return list(products_dict.values())</code></pre>
+                    </div>
+                </div>
+                
+                <div class="explanation">
+                    <h4>Fix Explanation:</h4>
+                    <p>The N+1 query problem was fixed by replacing multiple individual queries with a single JOIN query that fetches all necessary data at once. This significantly reduces database round-trips and improves performance. The code also uses SQLite's row factory feature to make working with results more convenient.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Database Operations</h2>
+            <ul>
+                <li><strong>Always use parameterized queries</strong> to prevent SQL injection</li>
+                <li><strong>Properly manage database connections</strong> using context managers or try-finally blocks</li>
+                <li><strong>Optimize query patterns</strong> to minimize round-trips to the database</li>
+                <li><strong>Use appropriate indexes</strong> to speed up queries</li>
+                <li><strong>Implement connection pooling</strong> for applications with high concurrency</li>
+                <li><strong>Validate input data</strong> before attempting database operations</li>
+                <li><strong>Use database transactions</strong> for operations that need to be atomic</li>
+                <li><strong>Handle database-specific exceptions</strong> appropriately</li>
+            </ul>
+        </section>
+        
+        <section class="contact-cta">
+            <h2>Need Help With Your Database Code?</h2>
+            <p>Struggling with database issues, performance problems, or security vulnerabilities in your Python application? I'm here to help diagnose and fix these issues efficiently.</p>
+            
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank" rel="noopener noreferrer">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            
+            <a href="../index.html#contact" class="cta-button">Get in Touch</a>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Testing Bug Fixes</h1>
+            <p class="subtitle">Resolving common unit testing and mocking issues in Python</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Testing Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common bugs in Python testing frameworks like pytest and unittest, 
+                as well as issues with mocking and test isolation. Testing bugs can lead to false positives 
+                (tests pass when they should fail), false negatives (tests fail when they should pass), 
+                and test flakiness (inconsistent results).
+            </p>
+            
+            <div class="code-preview">
+                <h3>User Authentication Test Module</h3>
+                <pre><code class="language-python">import unittest
+import pytest
+from unittest.mock import patch, MagicMock
+from user_auth import UserAuthenticator, AuthError
+
+class TestUserAuthentication:
+    def setup_method(self):
+        """Set up test environment."""
+        self.auth = UserAuthenticator(db_connection="test_db")
+        
+    def test_login_success(self):
+        """Test successful login."""
+        # Test contains mocking issues
+        
+    def test_login_failure(self):
+        """Test failed login."""
+        # Test contains assertion bugs
+        
+    def test_password_validation(self):
+        """Test password validation."""
+        # Test contains side effect bugs</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Testing Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Improper Mocking</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def test_login_success(self):
+    """Test successful login."""
+    # BUG: Incorrect mocking approach
+    mock_db = MagicMock()
+    mock_db.get_user.return_value = {
+        "username": "test_user", 
+        "password_hash": "hashed_password",
+        "is_active": True
+    }
+    
+    # Direct attribute assignment doesn't affect the test subject
+    self.auth.db_connection = mock_db
+    
+    # Hash verification not mocked, will call real function
+    result = self.auth.login("test_user", "password123")
+    
+    assert result == True
+    mock_db.get_user.assert_called_once()
+    
+# The test may fail because:
+# 1. Real password verification is called
+# 2. db_connection might be created inside methods, not accessible for mocking
+# 3. Mocking the wrong method/attribute</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Incorrect mocking approach by direct attribute assignment, incomplete mocking of dependencies, and incorrect assumptions about the implementation.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">@patch('user_auth.UserAuthenticator.verify_password')
+@patch('user_auth.get_database_connection')
+def test_login_success(self, mock_get_db, mock_verify_password):
+    """Test successful login with proper mocking."""
+    # FIXED: Proper patching of external dependencies
+    
+    # Set up the mocks
+    mock_db = MagicMock()
+    mock_get_db.return_value = mock_db
+    
+    mock_db.get_user.return_value = {
+        "username": "test_user", 
+        "password_hash": "hashed_password",
+        "is_active": True
+    }
+    
+    # Mock password verification to return True
+    mock_verify_password.return_value = True
+    
+    # Create a fresh instance after mocking
+    auth = UserAuthenticator(db_connection="test_db")
+    
+    # Call the method under test
+    result = auth.login("test_user", "password123")
+    
+    # Verify results and interactions
+    assert result == True
+    mock_db.get_user.assert_called_once_with("test_user")
+    mock_verify_password.assert_called_once_with("password123", "hashed_password")
+    
+    # Verify no unexpected interactions
+    mock_db.assert_no_other_calls()</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using proper patch decorators to mock dependencies, testing complete interaction chains including verification of all calls, and creating the test subject after mocking is configured.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Improper Assertions</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def test_login_failure(self):
+    """Test failed login."""
+    # BUG: Improper exception testing
+    
+    # Mock database to return valid user
+    with patch('user_auth.get_database_connection') as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = None  # User not found
+        
+        # This attempts to verify exception is raised but is incorrect
+        try:
+            self.auth.login("nonexistent_user", "password123")
+            assert False, "Should have raised AuthError"
+        except:
+            # WRONG: Catches any exception, not just AuthError
+            assert True
+            
+    # Also incorrect: testing multiple behaviors in one test
+    with patch('user_auth.get_database_connection') as mock_get_db:
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = {"username": "test_user", "is_active": False}
+        
+        result = self.auth.login("test_user", "password123")
+        assert result == False  # Should raise InactiveUserError instead</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using generic try/except to test exceptions (which catches any exception), combining multiple assertions in a single test, and incorrect assertions about the expected behavior.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Split into separate tests, each testing one specific case
+@patch('user_auth.get_database_connection')
+def test_login_nonexistent_user(self, mock_get_db):
+    """Test login with nonexistent user."""
+    # FIXED: Proper exception testing
+    
+    # Set up the mock
+    mock_db = MagicMock()
+    mock_get_db.return_value = mock_db
+    mock_db.get_user.return_value = None  # User not found
+    
+    # Create a fresh instance
+    auth = UserAuthenticator(db_connection="test_db")
+    
+    # Use context manager to verify specific exception type
+    with pytest.raises(AuthError) as excinfo:
+        auth.login("nonexistent_user", "password123")
+        
+    # Verify exception details if needed
+    assert "User not found" in str(excinfo.value)
+    mock_db.get_user.assert_called_once_with("nonexistent_user")
+
+@patch('user_auth.get_database_connection')
+def test_login_inactive_user(self, mock_get_db):
+    """Test login with inactive user."""
+    # Set up the mock
+    mock_db = MagicMock()
+    mock_get_db.return_value = mock_db
+    mock_db.get_user.return_value = {
+        "username": "test_user", 
+        "password_hash": "hashed_password",
+        "is_active": False
+    }
+    
+    # Create a fresh instance
+    auth = UserAuthenticator(db_connection="test_db")
+    
+    # Test specific exception for inactive user
+    with pytest.raises(InactiveUserError) as excinfo:
+        auth.login("test_user", "password123")
+        
+    assert "Account is inactive" in str(excinfo.value)
+    mock_db.get_user.assert_called_once_with("test_user")</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using pytest's <code>pytest.raises()</code> context manager to test for specific exceptions, splitting tests to focus on one behavior per test, and verifying the exception message for more robust testing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Test Isolation Issues</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Using a class variable (shared state)
+class TestPasswordValidation(unittest.TestCase):
+    # BUG: Shared test state
+    users_db = {}  # Shared between all tests
+    
+    def setUp(self):
+        self.auth = UserAuthenticator(db_connection="test_db")
+        # Add a test user - affects all tests in the class
+        self.users_db["test_user"] = {
+            "password_history": ["old_hash1", "old_hash2"]
+        }
+    
+    @patch('user_auth.get_database_connection')
+    def test_password_reuse(self, mock_get_db):
+        # Using shared state from setUp
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = self.users_db["test_user"]
+        
+        # Test password reuse validation
+        with self.assertRaises(PasswordReuseError):
+            self.auth.validate_new_password("test_user", "old_password1")
+            
+    @patch('user_auth.get_database_connection')
+    def test_password_update(self, mock_get_db):
+        # Using and modifying shared state
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = self.users_db["test_user"]
+        
+        # This modifies the shared state
+        self.auth.update_password("test_user", "new_password")
+        
+        # The users_db now has different content affecting other tests
+        assert len(self.users_db["test_user"]["password_history"]) == 3</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using shared state (class variables) between tests, leading to test dependency and order sensitivity. One test can affect the outcome of another test.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Using fresh fixtures for each test
+class TestPasswordValidation:
+    # FIXED: Isolated test state
+    
+    @pytest.fixture
+    def mock_user_data(self):
+        """Fixture providing isolated user data for each test."""
+        return {
+            "password_history": ["old_hash1", "old_hash2"]
+        }
+    
+    @pytest.fixture
+    def auth_service(self):
+        """Fixture providing a fresh authenticator instance."""
+        return UserAuthenticator(db_connection="test_db")
+    
+    @patch('user_auth.get_database_connection')
+    def test_password_reuse(self, mock_get_db, auth_service, mock_user_data):
+        # Using isolated fixture data
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # Test password reuse validation
+        with pytest.raises(PasswordReuseError):
+            auth_service.validate_new_password("test_user", "old_password1")
+            
+    @patch('user_auth.get_database_connection')
+    def test_password_update(self, mock_get_db, auth_service, mock_user_data):
+        # Using isolated fixture data
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # This modifies only the local instance
+        auth_service.update_password("test_user", "new_password")
+        
+        # Will not affect other tests because of fixture isolation
+        assert len(mock_user_data["password_history"]) == 3
+        mock_db.update_user.assert_called_once()
+        
+    # Additional test to verify isolation
+    @patch('user_auth.get_database_connection')
+    def test_password_complexity(self, mock_get_db, auth_service, mock_user_data):
+        # This test is independent of test_password_update
+        # Each test gets a fresh copy of mock_user_data
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # Verify original state is preserved
+        assert len(mock_user_data["password_history"]) == 2
+        
+        with pytest.raises(WeakPasswordError):
+            auth_service.validate_new_password("test_user", "simple")</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using pytest fixtures to provide isolated, fresh test data for each test, ensuring tests are independent and can run in any order without affecting each other.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import pytest
+from unittest.mock import patch, MagicMock, call
+from user_auth import (
+    UserAuthenticator, 
+    AuthError, 
+    InactiveUserError, 
+    PasswordReuseError,
+    WeakPasswordError
+)
+
+class TestUserAuthentication:
+    """Test suite for UserAuthenticator class."""
+    
+    @pytest.fixture
+    def mock_user_service(self):
+        """Fixture to provide a mock user service."""
+        mock_service = MagicMock()
+        mock_service.get_user.return_value = None
+        return mock_service
+    
+    @pytest.fixture
+    def auth_service(self):
+        """Fixture to provide a fresh authenticator instance."""
+        with patch('user_auth.get_database_connection') as mock_get_db:
+            # Return None - will be overridden in specific tests
+            mock_get_db.return_value = None
+            return UserAuthenticator(db_connection="test_db")
+    
+    # ----- Login Tests -----
+    
+    @patch('user_auth.UserAuthenticator.verify_password')
+    @patch('user_auth.get_database_connection')
+    def test_login_success(self, mock_get_db, mock_verify_password):
+        """Test successful login with proper mocking."""
+        # Set up the mocks
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        
+        mock_db.get_user.return_value = {
+            "username": "test_user", 
+            "password_hash": "hashed_password",
+            "is_active": True
+        }
+        
+        # Mock password verification to return True
+        mock_verify_password.return_value = True
+        
+        # Create a fresh instance after mocking
+        auth = UserAuthenticator(db_connection="test_db")
+        
+        # Call the method under test
+        result = auth.login("test_user", "password123")
+        
+        # Verify results and interactions
+        assert result == True
+        mock_db.get_user.assert_called_once_with("test_user")
+        mock_verify_password.assert_called_once_with("password123", "hashed_password")
+        
+        # Verify no unexpected interactions
+        mock_db.assert_no_other_calls()
+    
+    @patch('user_auth.get_database_connection')
+    def test_login_nonexistent_user(self, mock_get_db):
+        """Test login with nonexistent user."""
+        # Set up the mock
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = None  # User not found
+        
+        # Create a fresh instance
+        auth = UserAuthenticator(db_connection="test_db")
+        
+        # Use context manager to verify specific exception type
+        with pytest.raises(AuthError) as excinfo:
+            auth.login("nonexistent_user", "password123")
+            
+        # Verify exception details if needed
+        assert "User not found" in str(excinfo.value)
+        mock_db.get_user.assert_called_once_with("nonexistent_user")
+    
+    @patch('user_auth.get_database_connection')
+    def test_login_inactive_user(self, mock_get_db):
+        """Test login with inactive user."""
+        # Set up the mock
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = {
+            "username": "test_user", 
+            "password_hash": "hashed_password",
+            "is_active": False
+        }
+        
+        # Create a fresh instance
+        auth = UserAuthenticator(db_connection="test_db")
+        
+        # Test specific exception for inactive user
+        with pytest.raises(InactiveUserError) as excinfo:
+            auth.login("test_user", "password123")
+            
+        assert "Account is inactive" in str(excinfo.value)
+        mock_db.get_user.assert_called_once_with("test_user")
+    
+    @patch('user_auth.UserAuthenticator.verify_password')
+    @patch('user_auth.get_database_connection')
+    def test_login_invalid_password(self, mock_get_db, mock_verify_password):
+        """Test login with invalid password."""
+        # Set up the mocks
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        
+        mock_db.get_user.return_value = {
+            "username": "test_user", 
+            "password_hash": "hashed_password",
+            "is_active": True
+        }
+        
+        # Mock password verification to fail
+        mock_verify_password.return_value = False
+        
+        # Create a fresh instance
+        auth = UserAuthenticator(db_connection="test_db")
+        
+        # Test exception is raised for invalid password
+        with pytest.raises(AuthError) as excinfo:
+            auth.login("test_user", "wrong_password")
+            
+        assert "Invalid password" in str(excinfo.value)
+        mock_verify_password.assert_called_once_with("wrong_password", "hashed_password")
+    
+    # ----- Password Validation Tests -----
+    
+    @pytest.fixture
+    def mock_user_data(self):
+        """Fixture providing isolated user data for each test."""
+        return {
+            "username": "test_user",
+            "password_history": ["old_hash1", "old_hash2"],
+            "is_active": True
+        }
+    
+    @patch('user_auth.UserAuthenticator.verify_password')
+    @patch('user_auth.get_database_connection')
+    def test_password_reuse(self, mock_get_db, mock_verify_password, auth_service, mock_user_data):
+        """Test password reuse detection."""
+        # Set up the mocks
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # Configure mock to indicate password matches an old one
+        mock_verify_password.side_effect = lambda pwd, hash: hash == "old_hash1" and pwd == "old_password"
+        
+        # Test password reuse validation
+        with pytest.raises(PasswordReuseError):
+            auth_service.validate_new_password("test_user", "old_password")
+            
+        # Verify proper verification attempts
+        expected_calls = [
+            call("old_password", "old_hash1"),
+            # Second call doesn't happen because first one matches
+        ]
+        assert mock_verify_password.call_args_list == expected_calls
+    
+    @patch('user_auth.get_database_connection')
+    def test_password_complexity(self, mock_get_db, auth_service, mock_user_data):
+        """Test password complexity requirements."""
+        # Set up the mock
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # Test weak password
+        with pytest.raises(WeakPasswordError) as excinfo:
+            auth_service.validate_new_password("test_user", "simple")
+            
+        assert "Password does not meet complexity requirements" in str(excinfo.value)
+        
+        # Test valid password passes validation
+        complex_password = "Complex123!@#"
+        # Should not raise any exceptions
+        auth_service.validate_new_password("test_user", complex_password)
+    
+    @patch('user_auth.UserAuthenticator.hash_password')
+    @patch('user_auth.get_database_connection')
+    def test_password_update(self, mock_get_db, mock_hash_password, auth_service, mock_user_data):
+        """Test password update functionality."""
+        # Set up the mocks
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_db.get_user.return_value = mock_user_data
+        
+        # Mock the hash password function
+        mock_hash_password.return_value = "new_hash"
+        
+        # Test password update
+        auth_service.update_password("test_user", "New_Complex_Password123!")
+        
+        # Verify database was updated with new hash
+        expected_history = ["old_hash1", "old_hash2", "new_hash"]
+        mock_db.update_user.assert_called_once_with(
+            "test_user", 
+            {"password_hash": "new_hash", "password_history": expected_history}
+        )
+        
+        # Test with another instance to verify isolation
+        another_auth = UserAuthenticator(db_connection="test_db")
+        mock_user_data_copy = mock_user_data.copy()
+        mock_db.get_user.return_value = mock_user_data_copy
+        
+        another_auth.update_password("test_user", "Another_New_Password456!")
+        
+        # Second call should update with unchanged history since fixtures are fresh
+        mock_db.update_user.assert_called_with(
+            "test_user", 
+            {"password_hash": "new_hash", "password_history": ["old_hash1", "old_hash2", "new_hash"]}
+        )</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Testing</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Isolate Tests Properly</h3>
+                    <p>Each test should be completely independent. Use fixtures or setup/teardown methods to ensure tests don't affect each other.</p>
+                    <pre><code class="language-python"># Use pytest fixtures for test isolation
+@pytest.fixture
+def sample_data():
+    """Fixture providing fresh test data."""
+    return {"key": "value"}  # Fresh copy for each test
+
+def test_one(sample_data):
+    # Modify the data
+    sample_data["key"] = "modified"
+    assert sample_data["key"] == "modified"
+
+def test_two(sample_data):
+    # Gets a fresh copy, unaffected by test_one
+    assert sample_data["key"] == "value"</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Mock Correctly</h3>
+                    <p>Mock at the right level and be aware of how your mocks are applied. Use patching to inject mocks into the code under test.</p>
+                    <pre><code class="language-python"># Mock external dependencies, not the system under test
+@patch('mymodule.external_service')  # Patch the import location
+def test_feature(mock_service):
+    # Configure the mock
+    mock_service.get_data.return_value = {"test": "data"}
+    
+    # Test your actual code that uses the external service
+    result = my_function_using_external_service()
+    
+    # Verify interactions with the mock
+    mock_service.get_data.assert_called_once()</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Test One Thing Per Test</h3>
+                    <p>Each test should verify a single behavior. This makes tests easier to understand and maintain.</p>
+                    <pre><code class="language-python"># Good: One specific test for each condition
+def test_get_user_success():
+    # Test the successful case only
+    
+def test_get_user_not_found():
+    # Test the not found case only
+    
+def test_get_user_permission_denied():
+    # Test the permission denied case only
+    
+# Bad: Multiple behaviors in one test
+def test_get_user_all_cases():
+    # Testing success, not found, and permission denied
+    # in a single test is harder to maintain</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Your Test Suite?</h2>
+            <p>
+                I specialize in fixing testing bugs and improving test coverage and reliability.
+                Contact me to discuss your testing challenges!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html> 

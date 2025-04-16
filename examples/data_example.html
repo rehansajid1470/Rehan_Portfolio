@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Processing Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Data Processing Bug Fixes</h1>
+            <p class="subtitle">Resolving common issues in data handling with Python</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Data Processing Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common data processing bugs in Python and how to fix them.
+                Data processing bugs can lead to incorrect results, data corruption, or even system crashes.
+                Many of these issues are related to improper handling of data types, missing values, or formatting inconsistencies.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Data Analysis Class</h3>
+                <pre><code class="language-python">import pandas as pd
+import numpy as np
+
+class DataAnalyzer:
+    def __init__(self, data_file):
+        self.data_file = data_file
+        self.data = None
+        self.load_data()
+    
+    def load_data(self):
+        """Load data from CSV file."""
+        # This method contains several data handling bugs
+        self.data = pd.read_csv(self.data_file)
+        
+    def calculate_metrics(self, column):
+        """Calculate statistical metrics for a column."""
+        # This contains bugs related to missing value handling
+        
+    def normalize_values(self, column):
+        """Normalize values to 0-1 range."""
+        # This contains type conversion bugs</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Data Processing Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Missing Value Handling</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def calculate_metrics(self, column):
+    """Calculate statistical metrics for a column."""
+    # BUG: No handling of missing values
+    values = self.data[column]
+    total = sum(values)
+    average = total / len(values)
+    maximum = max(values)
+    minimum = min(values)
+    
+    return {
+        'total': total,
+        'average': average,
+        'max': maximum,
+        'min': minimum
+    }
+    
+# With data containing NaN values, this will fail with:
+# TypeError: unsupported operand type(s) for +: 'float' and 'NaN'</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The function fails to handle missing values (NaN) in the data, leading to errors when attempting mathematical operations.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def calculate_metrics(self, column):
+    """Calculate statistical metrics for a column."""
+    # FIXED: Proper handling of missing values
+    values = self.data[column].dropna()
+    
+    # Check if we have any valid values
+    if len(values) == 0:
+        return {
+            'total': 0,
+            'average': 0,
+            'max': 0,
+            'min': 0,
+            'missing_count': len(self.data[column]) - len(values)
+        }
+    
+    total = sum(values)
+    average = total / len(values)
+    maximum = max(values)
+    minimum = min(values)
+    
+    return {
+        'total': total,
+        'average': average,
+        'max': maximum,
+        'min': minimum,
+        'missing_count': len(self.data[column]) - len(values)
+    }</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using pandas' <code>dropna()</code> to remove missing values before calculations and including metadata about missing value count in the output.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Type Conversion Issues</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def normalize_values(self, column):
+    """Normalize values to 0-1 range."""
+    # BUG: No type checking or handling
+    values = self.data[column]
+    min_val = min(values)
+    max_val = max(values)
+    
+    # Normalize to 0-1 range
+    normalized = [(x - min_val) / (max_val - min_val) for x in values]
+    
+    return normalized
+    
+# If some values are strings, this will fail:
+# TypeError: '>' not supported between instances of 'str' and 'float'</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The function doesn't validate or convert data types, causing errors when attempting to normalize mixed types (e.g., strings and numbers).</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def normalize_values(self, column):
+    """Normalize values to 0-1 range."""
+    # FIXED: Proper type conversion and validation
+    try:
+        # Convert to numeric, coerce errors to NaN
+        values = pd.to_numeric(self.data[column], errors='coerce')
+        
+        # Drop NaN values
+        values = values.dropna()
+        
+        # Check if we have enough values
+        if len(values) < 2:
+            return pd.Series(np.nan, index=self.data.index)
+            
+        min_val = min(values)
+        max_val = max(values)
+        
+        # Check for division by zero
+        if min_val == max_val:
+            # All values are the same, return 0.5 for all
+            return pd.Series(0.5, index=values.index)
+            
+        # Normalize to 0-1 range
+        normalized = [(x - min_val) / (max_val - min_val) 
+                     if not pd.isna(x) else np.nan 
+                     for x in values]
+        
+        return pd.Series(normalized, index=values.index)
+        
+    except Exception as e:
+        # Log the error and return NaN series
+        print(f"Error normalizing column {column}: {str(e)}")
+        return pd.Series(np.nan, index=self.data.index)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using <code>pd.to_numeric()</code> to safely convert values, handling edge cases like division by zero, and properly managing the DataFrame indices.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Inconsistent Date Formats</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_date_range(self, date_column):
+    """Get the range between earliest and latest dates."""
+    # BUG: Assumes consistent date format
+    dates = self.data[date_column]
+    start_date = min(dates)
+    end_date = max(dates)
+    
+    # Calculate days between
+    date_range = (end_date - start_date).days
+    
+    return {
+        'start_date': start_date,
+        'end_date': end_date,
+        'days': date_range
+    }
+    
+# With mixed date formats (e.g., '01/05/2023' and '2023-01-06'),
+# this will fail with string comparison errors</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The function assumes all dates are in the same format and are already datetime objects, causing errors with inconsistent formats.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_date_range(self, date_column):
+    """Get the range between earliest and latest dates."""
+    # FIXED: Handle different date formats
+    try:
+        # First attempt automatic parsing
+        parsed_dates = pd.to_datetime(self.data[date_column], errors='coerce')
+        
+        # Check how many dates we could parse
+        valid_dates = parsed_dates.dropna()
+        invalid_count = len(parsed_dates) - len(valid_dates)
+        
+        if len(valid_dates) == 0:
+            return {
+                'error': f"No valid dates found in column {date_column}",
+                'invalid_count': invalid_count
+            }
+            
+        start_date = min(valid_dates)
+        end_date = max(valid_dates)
+        
+        # Calculate days between
+        date_range = (end_date - start_date).days
+        
+        return {
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+            'days': date_range,
+            'valid_count': len(valid_dates),
+            'invalid_count': invalid_count
+        }
+        
+    except Exception as e:
+        return {
+            'error': f"Error processing dates: {str(e)}",
+            'sample_values': self.data[date_column].head(5).tolist()
+        }</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using <code>pd.to_datetime()</code> with error coercion to handle various date formats, providing detailed information about parsing success, and implementing robust error handling.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import pandas as pd
+import numpy as np
+import logging
+
+class DataAnalyzer:
+    def __init__(self, data_file):
+        self.data_file = data_file
+        self.data = None
+        self.logger = self._setup_logger()
+        self.load_data()
+    
+    def _setup_logger(self):
+        """Set up logging for the data analyzer."""
+        logger = logging.getLogger("DataAnalyzer")
+        logger.setLevel(logging.INFO)
+        
+        # Create console handler
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        logger.addHandler(handler)
+        
+        return logger
+    
+    def load_data(self):
+        """Load data from CSV file with proper error handling."""
+        try:
+            self.logger.info(f"Loading data from {self.data_file}")
+            self.data = pd.read_csv(self.data_file)
+            
+            # Log basic data information
+            self.logger.info(f"Loaded {len(self.data)} rows and {len(self.data.columns)} columns")
+            self.logger.info(f"Columns: {', '.join(self.data.columns)}")
+            
+            # Check for missing values
+            missing = self.data.isnull().sum().sum()
+            if missing > 0:
+                self.logger.warning(f"Dataset contains {missing} missing values")
+                
+        except FileNotFoundError:
+            self.logger.error(f"File not found: {self.data_file}")
+            raise
+            
+        except pd.errors.EmptyDataError:
+            self.logger.error(f"Empty data file: {self.data_file}")
+            raise
+            
+        except pd.errors.ParserError:
+            self.logger.error(f"Parser error with file: {self.data_file}")
+            raise
+            
+        except Exception as e:
+            self.logger.error(f"Unexpected error loading data: {str(e)}")
+            raise
+    
+    def calculate_metrics(self, column):
+        """Calculate statistical metrics for a column with proper error handling."""
+        try:
+            if column not in self.data.columns:
+                self.logger.error(f"Column not found: {column}")
+                return {'error': f"Column '{column}' not found"}
+            
+            # Handle missing values
+            values = self.data[column].dropna()
+            
+            # Check if we have any valid values
+            if len(values) == 0:
+                self.logger.warning(f"No valid values in column: {column}")
+                return {
+                    'total': 0,
+                    'average': 0,
+                    'max': 0,
+                    'min': 0,
+                    'missing_count': len(self.data[column]),
+                    'warning': 'No valid values found'
+                }
+            
+            # Convert to numeric if possible
+            values = pd.to_numeric(values, errors='coerce')
+            values = values.dropna()
+            
+            if len(values) == 0:
+                self.logger.warning(f"No numeric values in column: {column}")
+                return {
+                    'error': 'No numeric values found',
+                    'missing_count': len(self.data[column])
+                }
+            
+            total = sum(values)
+            average = total / len(values)
+            maximum = max(values)
+            minimum = min(values)
+            
+            self.logger.info(f"Calculated metrics for column: {column}")
+            
+            return {
+                'total': total,
+                'average': average,
+                'max': maximum,
+                'min': minimum,
+                'count': len(values),
+                'missing_count': len(self.data[column]) - len(values)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating metrics for {column}: {str(e)}")
+            return {'error': str(e)}
+    
+    def normalize_values(self, column):
+        """Normalize values to 0-1 range with proper error handling."""
+        try:
+            if column not in self.data.columns:
+                self.logger.error(f"Column not found: {column}")
+                return pd.Series(np.nan, index=self.data.index)
+            
+            # Convert to numeric, coerce errors to NaN
+            values = pd.to_numeric(self.data[column], errors='coerce')
+            
+            # Drop NaN values
+            values = values.dropna()
+            
+            # Check if we have enough values
+            if len(values) < 2:
+                self.logger.warning(f"Not enough valid values in column: {column}")
+                return pd.Series(np.nan, index=self.data.index)
+                
+            min_val = min(values)
+            max_val = max(values)
+            
+            # Check for division by zero
+            if min_val == max_val:
+                self.logger.warning(f"All values are identical in column: {column}")
+                # All values are the same, return 0.5 for all
+                return pd.Series(0.5, index=values.index)
+                
+            # Normalize to 0-1 range
+            normalized = [(x - min_val) / (max_val - min_val) 
+                         if not pd.isna(x) else np.nan 
+                         for x in values]
+            
+            self.logger.info(f"Normalized values for column: {column}")
+            return pd.Series(normalized, index=values.index)
+            
+        except Exception as e:
+            self.logger.error(f"Error normalizing column {column}: {str(e)}")
+            return pd.Series(np.nan, index=self.data.index)
+    
+    def get_date_range(self, date_column):
+        """Get the range between earliest and latest dates with proper format handling."""
+        try:
+            if date_column not in self.data.columns:
+                self.logger.error(f"Column not found: {date_column}")
+                return {'error': f"Column '{date_column}' not found"}
+            
+            # First attempt automatic parsing
+            parsed_dates = pd.to_datetime(self.data[date_column], errors='coerce')
+            
+            # Check how many dates we could parse
+            valid_dates = parsed_dates.dropna()
+            invalid_count = len(parsed_dates) - len(valid_dates)
+            
+            if len(valid_dates) == 0:
+                self.logger.warning(f"No valid dates found in column: {date_column}")
+                return {
+                    'error': f"No valid dates found in column {date_column}",
+                    'invalid_count': invalid_count
+                }
+                
+            start_date = min(valid_dates)
+            end_date = max(valid_dates)
+            
+            # Calculate days between
+            date_range = (end_date - start_date).days
+            
+            self.logger.info(f"Calculated date range for column: {date_column}")
+            
+            return {
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'days': date_range,
+                'valid_count': len(valid_dates),
+                'invalid_count': invalid_count
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error processing dates in {date_column}: {str(e)}")
+            return {
+                'error': f"Error processing dates: {str(e)}",
+                'sample_values': self.data[date_column].head(5).tolist()
+            }</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Data Processing</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Always Handle Missing Values</h3>
+                    <p>Missing values are common in real-world data. Always check for and properly handle NaN, None, or empty values.</p>
+                    <pre><code class="language-python"># Check for missing values
+missing_count = df['column'].isnull().sum()
+
+# Handle missing values appropriately
+df_clean = df.dropna()  # Remove rows with missing values
+# OR
+df_filled = df.fillna(0)  # Replace with zeros
+# OR
+df_mean = df.fillna(df.mean())  # Replace with mean</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Validate Data Types</h3>
+                    <p>Always validate and convert data types explicitly rather than assuming they are correct.</p>
+                    <pre><code class="language-python"># Convert to numeric safely
+numeric_col = pd.to_numeric(df['column'], errors='coerce')
+
+# Convert to datetime safely
+date_col = pd.to_datetime(df['date_column'], 
+                          errors='coerce',
+                          format='%Y-%m-%d')</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Implement Robust Error Handling</h3>
+                    <p>Use try-except blocks and logging to handle errors gracefully and provide informative feedback.</p>
+                    <pre><code class="language-python">import logging
+
+try:
+    result = calculate_metrics(df)
+    if result is None:
+        logging.warning("No result returned")
+except ValueError as e:
+    logging.error(f"Value error: {str(e)}")
+    # Handle the error appropriately
+except Exception as e:
+    logging.error(f"Unexpected error: {str(e)}")
+    # Handle or re-raise as appropriate</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Your Data Processing?</h2>
+            <p>
+                I specialize in fixing bugs and optimizing Python data processing workflows.
+                Contact me to discuss your data challenges!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html>

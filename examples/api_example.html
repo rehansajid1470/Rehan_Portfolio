@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Integration Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>API Integration Bug Fixes</h1>
+            <p class="subtitle">Resolving common issues in Python API clients and integrations</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; API Integration Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common bugs in Python API integrations and how to fix them.
+                API integration bugs can cause failed requests, data inconsistencies, security issues,
+                and performance problems. Many of these issues stem from improper error handling,
+                authentication problems, and incorrect request formatting.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Weather API Client</h3>
+                <pre><code class="language-python">import requests
+import json
+import time
+
+class WeatherAPIClient:
+    def __init__(self, api_key, base_url="https://api.weatherservice.com/v1"):
+        self.api_key = api_key
+        self.base_url = base_url
+    
+    def get_current_weather(self, city):
+        """Get current weather for a city."""
+        # This method contains request formatting bugs
+    
+    def get_forecast(self, city, days=5):
+        """Get weather forecast for a number of days."""
+        # This method contains error handling bugs
+        
+    def get_historical_data(self, city, start_date, end_date):
+        """Get historical weather data for a date range."""
+        # This method contains authentication and rate limiting bugs</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>API Integration Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Improper URL Construction and Request Formatting</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_current_weather(self, city):
+    """Get current weather for a city."""
+    # BUG: Unsafe string concatenation for URL construction
+    url = self.base_url + "/current?city=" + city + "&key=" + self.api_key
+    
+    # Make the request
+    response = requests.get(url)
+    
+    # Parse the response
+    data = response.json()
+    return data
+    
+# Examples of issues:
+# - URL encoding issues with spaces or special characters in city names
+# - No input validation
+# - No response status code checking
+# - No error handling if JSON parsing fails</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using string concatenation to construct URLs leads to encoding issues, and the lack of error handling can cause unexpected crashes when responses are malformed.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_current_weather(self, city):
+    """Get current weather for a city with proper URL construction and error handling."""
+    if not city:
+        raise ValueError("City parameter cannot be empty")
+        
+    # FIXED: Use proper parameter dictionaries for URL encoding
+    endpoint = f"{self.base_url}/current"
+    params = {
+        "city": city,
+        "key": self.api_key
+    }
+    
+    try:
+        # Make the request with proper params argument
+        response = requests.get(endpoint, params=params, timeout=10)
+        
+        # Check for HTTP errors
+        response.raise_for_status()
+        
+        # Parse JSON safely
+        try:
+            data = response.json()
+        except ValueError:
+            raise ValueError(f"Invalid JSON response from API: {response.text}")
+            
+        # Validate response structure
+        if "current" not in data:
+            raise ValueError(f"Unexpected API response format: {data}")
+            
+        return data
+        
+    except requests.RequestException as e:
+        # Catch and handle specific request errors
+        if isinstance(e, requests.Timeout):
+            raise TimeoutError(f"Request to weather API timed out: {str(e)}")
+        elif isinstance(e, requests.HTTPError):
+            status_code = e.response.status_code
+            if status_code == 401:
+                raise PermissionError("Invalid API key")
+            elif status_code == 404:
+                raise ValueError(f"City '{city}' not found")
+            else:
+                raise ConnectionError(f"HTTP error occurred: {str(e)}")
+        else:
+            raise ConnectionError(f"Request failed: {str(e)}")</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using parameter dictionaries for proper URL encoding, adding thorough error handling for HTTP errors and JSON parsing, validating both inputs and response structure, and using timeouts to prevent hanging requests.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Inadequate Error Handling for API Responses</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_forecast(self, city, days=5):
+    """Get weather forecast for a number of days."""
+    # BUG: Inadequate error handling
+    url = f"{self.base_url}/forecast"
+    
+    # Make the request with f-string
+    response = requests.get(f"{url}?city={city}&days={days}&key={self.api_key}")
+    
+    # Assume success without checking status codes
+    data = response.json()
+    
+    # Extract forecast data without validation
+    forecast = data['forecast']['daily']
+    
+    return forecast
+    
+# This will crash when:
+# - The API returns an error response with different structure
+# - The API is down or unreachable
+# - The API returns valid JSON but with a different structure than expected</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The code assumes the API always returns success responses with the expected structure, leading to KeyError exceptions when the structure differs and crashes when there are connection issues.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_forecast(self, city, days=5):
+    """Get weather forecast with comprehensive error handling."""
+    # Input validation
+    if not city:
+        raise ValueError("City parameter cannot be empty")
+        
+    if not isinstance(days, int) or days < 1 or days > 14:
+        raise ValueError("Days parameter must be an integer between 1 and 14")
+    
+    # FIXED: Proper request construction with params
+    endpoint = f"{self.base_url}/forecast"
+    params = {
+        "city": city,
+        "days": days,
+        "key": self.api_key
+    }
+    
+    try:
+        # Make the request with timeout
+        response = requests.get(
+            endpoint, 
+            params=params, 
+            timeout=10,
+            headers={"Accept": "application/json"}
+        )
+        
+        # Check for HTTP errors
+        response.raise_for_status()
+        
+        # Check content type to ensure we got JSON
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/json' not in content_type:
+            raise ValueError(f"Unexpected content type: {content_type}")
+        
+        # Parse JSON safely
+        try:
+            data = response.json()
+        except ValueError:
+            raise ValueError(f"Invalid JSON response from API: {response.text[:100]}...")
+        
+        # Validate response structure
+        if 'forecast' not in data:
+            if 'error' in data:
+                raise ValueError(f"API error: {data['error'].get('message', str(data['error']))}")
+            else:
+                raise ValueError(f"Unexpected API response format: {data}")
+                
+        if 'daily' not in data['forecast']:
+            raise ValueError("API response missing daily forecast data")
+            
+        # Return the data
+        return data['forecast']['daily']
+        
+    except requests.RequestException as e:
+        # Log detailed error information
+        print(f"Error fetching forecast for {city}: {str(e)}")
+        
+        # Re-raise with user-friendly message based on exception type
+        if isinstance(e, requests.Timeout):
+            raise TimeoutError("Weather API request timed out") from e
+        elif isinstance(e, requests.ConnectionError):
+            raise ConnectionError("Could not connect to Weather API") from e
+        elif isinstance(e, requests.HTTPError):
+            status_code = e.response.status_code
+            if status_code == 401:
+                raise PermissionError("Invalid API key") from e
+            elif status_code == 404:
+                raise ValueError(f"City '{city}' not found") from e
+            elif status_code == 429:
+                raise RateLimitError("API rate limit exceeded") from e
+            else:
+                raise APIError(f"HTTP error {status_code}") from e
+        else:
+            raise APIError(f"Request failed: {str(e)}") from e</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Adding comprehensive error handling for all possible failures (HTTP errors, JSON parsing, response validation), implementing input validation, setting proper headers for content negotiation, and returning specific exceptions with helpful error messages.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: No Retry Logic or Rate Limit Handling</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_historical_data(self, city, start_date, end_date):
+    """Get historical weather data for a date range."""
+    # BUG: No rate limit handling or retry logic
+    url = f"{self.base_url}/history"
+    
+    # Make the request
+    response = requests.get(
+        url, 
+        params={
+            "city": city,
+            "start": start_date,
+            "end": end_date,
+            "key": self.api_key
+        }
+    )
+    
+    # Process the response
+    if response.status_code == 200:
+        return response.json()
+    else:
+        # Overly simplistic error handling
+        return {"error": f"API request failed with status code {response.status_code}"}
+    
+# This will:
+# - Return error dictionary instead of raising exceptions (silent failure)
+# - Not handle rate limiting or transient server errors
+# - Not implement any retry logic</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The code doesn't properly handle API rate limits or implement retry logic for transient failures, and it returns error dictionaries instead of raising exceptions, which can lead to silent failures and unexpected behavior.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def get_historical_data(self, city, start_date, end_date, max_retries=3):
+    """Get historical weather data with rate limiting and retry handling."""
+    # FIXED: Add retry logic and proper rate limit handling
+    
+    # Input validation
+    if not city or not start_date or not end_date:
+        raise ValueError("City, start_date, and end_date parameters are required")
+    
+    endpoint = f"{self.base_url}/history"
+    params = {
+        "city": city,
+        "start": start_date,
+        "end": end_date,
+        "key": self.api_key
+    }
+    
+    # Keep track of retries
+    retries = 0
+    last_exception = None
+    
+    while retries <= max_retries:
+        try:
+            # Make the request with proper timeout
+            response = requests.get(
+                endpoint, 
+                params=params, 
+                timeout=15,  # Longer timeout for historical data
+                headers={"Accept": "application/json"}
+            )
+            
+            # Handle rate limiting specifically
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 60))
+                print(f"Rate limit exceeded. Waiting for {retry_after} seconds...")
+                time.sleep(retry_after)
+                retries += 1
+                continue
+                
+            # Handle other server errors that may be transient
+            if response.status_code >= 500:
+                wait_time = 2 ** retries  # Exponential backoff
+                print(f"Server error ({response.status_code}). Retry {retries+1}/{max_retries} in {wait_time} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+                continue
+            
+            # For other status codes, raise as usual
+            response.raise_for_status()
+            
+            # Process successful response
+            data = response.json()
+            
+            # Validate the data structure
+            if 'history' not in data:
+                raise ValueError(f"Unexpected API response format: missing 'history' key")
+            
+            return data['history']
+            
+        except requests.RequestException as e:
+            last_exception = e
+            
+            # Don't retry certain exceptions
+            if isinstance(e, (requests.ConnectionError, requests.Timeout)):
+                wait_time = 2 ** retries  # Exponential backoff
+                print(f"Connection error: {str(e)}. Retry {retries+1}/{max_retries} in {wait_time} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                # For other exceptions, don't retry
+                break
+    
+    # If we exhausted our retries, raise the last exception
+    if last_exception:
+        if isinstance(last_exception, requests.HTTPError):
+            status_code = last_exception.response.status_code
+            if status_code == 401:
+                raise PermissionError("Authentication failed: invalid API key")
+            elif status_code == 403:
+                raise PermissionError("Permission denied: insufficient access rights")
+            elif status_code == 404:
+                raise ValueError(f"City '{city}' not found or historical data not available")
+            else:
+                raise APIError(f"HTTP error {status_code}: {last_exception}")
+        else:
+            raise APIError(f"Request failed after {max_retries} retries: {last_exception}")
+            
+    # This should not normally be reached
+    raise RuntimeError("Unknown error occurred during API request")</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Implementing proper retry logic with exponential backoff for transient errors, handling rate limits by respecting the server's Retry-After header, raising appropriate exceptions instead of returning error dictionaries, and adding detailed logging for troubleshooting.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import requests
+import json
+import time
+import logging
+from typing import Dict, List, Any, Optional, Union
+from datetime import datetime
+
+class APIError(Exception):
+    """Base exception for API errors."""
+    pass
+
+class RateLimitError(APIError):
+    """Exception raised when API rate limit is exceeded."""
+    pass
+
+class WeatherAPIClient:
+    """Client for interacting with weather API services."""
+    
+    def __init__(self, api_key: str, base_url: str = "https://api.weatherservice.com/v1"):
+        """
+        Initialize the Weather API client.
+        
+        Args:
+            api_key: Your API authentication key
+            base_url: The base URL for the API service
+        """
+        self.api_key = api_key
+        self.base_url = base_url.rstrip('/')
+        self.logger = self._setup_logger()
+        self.session = requests.Session()
+        
+        # Set default headers for all requests
+        self.session.headers.update({
+            "Accept": "application/json",
+            "User-Agent": "WeatherAPIClient/1.0 Python"
+        })
+    
+    def _setup_logger(self):
+        """Configure logging for the API client."""
+        logger = logging.getLogger("WeatherAPIClient")
+        logger.setLevel(logging.INFO)
+        
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            
+        return logger
+    
+    def get_current_weather(self, city: str) -> Dict[str, Any]:
+        """
+        Get current weather for a city with proper URL construction and error handling.
+        
+        Args:
+            city: Name of the city to get weather for
+            
+        Returns:
+            Dictionary containing weather data
+            
+        Raises:
+            ValueError: If city is empty or not found
+            TimeoutError: If request times out
+            PermissionError: If API key is invalid
+            ConnectionError: For network or HTTP errors
+        """
+        if not city:
+            raise ValueError("City parameter cannot be empty")
+            
+        # Use proper parameter dictionaries for URL encoding
+        endpoint = f"{self.base_url}/current"
+        params = {
+            "city": city,
+            "key": self.api_key
+        }
+        
+        try:
+            # Make the request with proper params argument
+            response = self.session.get(endpoint, params=params, timeout=10)
+            
+            # Check for HTTP errors
+            response.raise_for_status()
+            
+            # Parse JSON safely
+            try:
+                data = response.json()
+            except ValueError:
+                self.logger.error(f"Invalid JSON response: {response.text[:100]}...")
+                raise ValueError(f"Invalid JSON response from API: {response.text[:100]}...")
+                
+            # Validate response structure
+            if "current" not in data:
+                self.logger.error(f"Unexpected API response format: {data}")
+                raise ValueError(f"Unexpected API response format: {data}")
+                
+            return data
+            
+        except requests.RequestException as e:
+            # Log the error
+            self.logger.error(f"Error getting weather for {city}: {str(e)}")
+            
+            # Catch and handle specific request errors
+            if isinstance(e, requests.Timeout):
+                raise TimeoutError(f"Request to weather API timed out: {str(e)}") from e
+            elif isinstance(e, requests.HTTPError):
+                status_code = e.response.status_code
+                if status_code == 401:
+                    raise PermissionError("Invalid API key") from e
+                elif status_code == 404:
+                    raise ValueError(f"City '{city}' not found") from e
+                elif status_code == 429:
+                    retry_after = int(e.response.headers.get('Retry-After', 60))
+                    raise RateLimitError(f"API rate limit exceeded. Retry after {retry_after} seconds") from e
+                else:
+                    raise ConnectionError(f"HTTP error {status_code} occurred: {str(e)}") from e
+            else:
+                raise ConnectionError(f"Request failed: {str(e)}") from e
+    
+    def get_forecast(self, city: str, days: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get weather forecast with comprehensive error handling.
+        
+        Args:
+            city: Name of the city
+            days: Number of days to forecast (1-14)
+            
+        Returns:
+            List of daily forecast data
+            
+        Raises:
+            ValueError: For invalid input parameters or unexpected responses
+            Various request errors for different HTTP/network issues
+        """
+        # Input validation
+        if not city:
+            raise ValueError("City parameter cannot be empty")
+            
+        if not isinstance(days, int) or days < 1 or days > 14:
+            raise ValueError("Days parameter must be an integer between 1 and 14")
+        
+        # Proper request construction with params
+        endpoint = f"{self.base_url}/forecast"
+        params = {
+            "city": city,
+            "days": days,
+            "key": self.api_key
+        }
+        
+        try:
+            # Make the request with timeout
+            response = self.session.get(endpoint, params=params, timeout=10)
+            
+            # Check for HTTP errors
+            response.raise_for_status()
+            
+            # Check content type to ensure we got JSON
+            content_type = response.headers.get('Content-Type', '')
+            if 'application/json' not in content_type:
+                self.logger.warning(f"Unexpected content type: {content_type}")
+                
+            # Parse JSON safely
+            try:
+                data = response.json()
+            except ValueError:
+                self.logger.error(f"Invalid JSON response: {response.text[:100]}...")
+                raise ValueError(f"Invalid JSON response from API: {response.text[:100]}...")
+            
+            # Validate response structure
+            if 'forecast' not in data:
+                if 'error' in data:
+                    error_msg = data['error'].get('message', str(data['error']))
+                    self.logger.error(f"API error: {error_msg}")
+                    raise ValueError(f"API error: {error_msg}")
+                else:
+                    self.logger.error(f"Unexpected API response format: {data}")
+                    raise ValueError(f"Unexpected API response format: {data}")
+                    
+            if 'daily' not in data['forecast']:
+                self.logger.error("API response missing daily forecast data")
+                raise ValueError("API response missing daily forecast data")
+                
+            # Return the data
+            return data['forecast']['daily']
+            
+        except requests.RequestException as e:
+            # Log detailed error information
+            self.logger.error(f"Error fetching forecast for {city}: {str(e)}")
+            
+            # Re-raise with user-friendly message based on exception type
+            if isinstance(e, requests.Timeout):
+                raise TimeoutError("Weather API request timed out") from e
+            elif isinstance(e, requests.ConnectionError):
+                raise ConnectionError("Could not connect to Weather API") from e
+            elif isinstance(e, requests.HTTPError):
+                status_code = e.response.status_code
+                if status_code == 401:
+                    raise PermissionError("Invalid API key") from e
+                elif status_code == 404:
+                    raise ValueError(f"City '{city}' not found") from e
+                elif status_code == 429:
+                    retry_after = int(e.response.headers.get('Retry-After', 60))
+                    raise RateLimitError(f"API rate limit exceeded. Retry after {retry_after} seconds") from e
+                else:
+                    raise APIError(f"HTTP error {status_code}") from e
+            else:
+                raise APIError(f"Request failed: {str(e)}") from e
+    
+    def get_historical_data(self, city: str, start_date: str, end_date: str, max_retries: int = 3) -> Dict[str, Any]:
+        """
+        Get historical weather data with rate limiting and retry handling.
+        
+        Args:
+            city: Name of the city
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            Dictionary containing historical weather data
+            
+        Raises:
+            Various exceptions for different error conditions
+        """
+        # Input validation
+        if not city or not start_date or not end_date:
+            raise ValueError("City, start_date, and end_date parameters are required")
+        
+        # Validate date formats
+        try:
+            datetime.strptime(start_date, "%Y-%m-%d")
+            datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("Dates must be in YYYY-MM-DD format")
+        
+        endpoint = f"{self.base_url}/history"
+        params = {
+            "city": city,
+            "start": start_date,
+            "end": end_date,
+            "key": self.api_key
+        }
+        
+        # Keep track of retries
+        retries = 0
+        last_exception = None
+        
+        while retries <= max_retries:
+            try:
+                # Make the request with proper timeout
+                response = self.session.get(
+                    endpoint, 
+                    params=params, 
+                    timeout=15  # Longer timeout for historical data
+                )
+                
+                # Handle rate limiting specifically
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get('Retry-After', 60))
+                    self.logger.warning(f"Rate limit exceeded. Waiting for {retry_after} seconds...")
+                    time.sleep(retry_after)
+                    retries += 1
+                    continue
+                    
+                # Handle other server errors that may be transient
+                if response.status_code >= 500:
+                    wait_time = 2 ** retries  # Exponential backoff
+                    self.logger.warning(
+                        f"Server error ({response.status_code}). "
+                        f"Retry {retries+1}/{max_retries} in {wait_time} seconds..."
+                    )
+                    time.sleep(wait_time)
+                    retries += 1
+                    continue
+                
+                # For other status codes, raise as usual
+                response.raise_for_status()
+                
+                # Process successful response
+                data = response.json()
+                
+                # Validate the data structure
+                if 'history' not in data:
+                    raise ValueError(f"Unexpected API response format: missing 'history' key")
+                
+                return data['history']
+                
+            except requests.RequestException as e:
+                last_exception = e
+                self.logger.error(f"Request exception: {str(e)}")
+                
+                # Don't retry certain exceptions
+                if isinstance(e, (requests.ConnectionError, requests.Timeout)):
+                    wait_time = 2 ** retries  # Exponential backoff
+                    self.logger.warning(
+                        f"Connection error: {str(e)}. "
+                        f"Retry {retries+1}/{max_retries} in {wait_time} seconds..."
+                    )
+                    time.sleep(wait_time)
+                    retries += 1
+                else:
+                    # For other exceptions, don't retry
+                    break
+        
+        # If we exhausted our retries, raise the last exception
+        if last_exception:
+            if isinstance(last_exception, requests.HTTPError):
+                status_code = last_exception.response.status_code
+                if status_code == 401:
+                    raise PermissionError("Authentication failed: invalid API key") from last_exception
+                elif status_code == 403:
+                    raise PermissionError("Permission denied: insufficient access rights") from last_exception
+                elif status_code == 404:
+                    raise ValueError(f"City '{city}' not found or historical data not available") from last_exception
+                else:
+                    raise APIError(f"HTTP error {status_code}: {str(last_exception)}") from last_exception
+            else:
+                raise APIError(f"Request failed after {max_retries} retries: {str(last_exception)}") from last_exception
+                
+        # This should not normally be reached
+        raise RuntimeError("Unknown error occurred during API request")
+    
+    def close(self):
+        """Close the session to free resources."""
+        self.session.close()
+    
+    def __enter__(self):
+        """Support for with statement."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Support for with statement."""
+        self.close()</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for API Integration</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Use Parameter Dictionaries for URLs</h3>
+                    <p>Never manually append parameters to URLs. Use parameter dictionaries to handle URL encoding properly.</p>
+                    <pre><code class="language-python"># GOOD: Using params argument
+requests.get('https://api.example.com/resource', params={
+    'query': 'special chars: & ? =',
+    'limit': 10
+})
+
+# BAD: String concatenation or f-strings
+requests.get(f'https://api.example.com/resource?query={query}&limit=10')</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Implement Comprehensive Error Handling</h3>
+                    <p>Handle all possible error cases, including connection issues, timeouts, and different HTTP status codes.</p>
+                    <pre><code class="language-python">try:
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()  # Raise exception for 4XX/5XX status codes
+    data = response.json()
+except requests.Timeout:
+    # Handle timeouts
+    logger.error("Request timed out")
+    raise TimeoutError("API request timed out")
+except requests.ConnectionError:
+    # Handle connection issues
+    logger.error("Connection error")
+    raise ConnectionError("Could not connect to API")
+except requests.HTTPError as e:
+    # Handle HTTP errors with specific status codes
+    status_code = e.response.status_code
+    if status_code == 404:
+        raise ValueError("Resource not found")
+    elif status_code == 429:
+        raise RateLimitError("Rate limit exceeded")
+    else:
+        raise APIError(f"HTTP error: {status_code}")</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Use Retry Logic with Exponential Backoff</h3>
+                    <p>Implement retries with increasing wait times for transient errors.</p>
+                    <pre><code class="language-python">max_retries = 3
+retry_count = 0
+backoff_factor = 2
+
+while retry_count < max_retries:
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except (requests.ConnectionError, requests.Timeout, 
+            requests.HTTPError) as e:
+        # Only retry on certain status codes or error types
+        if isinstance(e, requests.HTTPError) and e.response.status_code < 500:
+            # Don't retry client errors (except rate limiting)
+            if e.response.status_code == 429:
+                # Handle rate limiting specifically
+                retry_after = int(e.response.headers.get('Retry-After', 60))
+                time.sleep(retry_after)
+            else:
+                raise
+        else:
+            # Exponential backoff
+            wait_time = backoff_factor ** retry_count
+            logger.warning(f"Retrying in {wait_time} seconds...")
+            time.sleep(wait_time)
+            retry_count += 1
+            
+# If we get here, we've exhausted retries
+raise APIError("Max retries exceeded")</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Your API Integrations?</h2>
+            <p>
+                I specialize in creating robust and reliable API clients and integrations.
+                Contact me to discuss your API integration challenges!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html> 

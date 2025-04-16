@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Debugging Portfolio | rehansajid099</title>
+    <meta name="description" content="Professional Python bug fixing and code optimization showcases. Expert solutions for algorithm bugs, data processing, web security, concurrency and performance issues.">
+    <meta name="keywords" content="Python debugging, code optimization, bug fixing, algorithm bugs, data processing, web security, threading issues, performance optimization">
+    <meta name="author" content="rehansajid099">
+    <!-- Open Graph metadata for better social sharing -->
+    <meta property="og:title" content="Python Debugging Portfolio | rehansajid099">
+    <meta property="og:description" content="Professional Python bug fixing and code optimization showcases">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.fiverr.com/rehansajid099">
+    <!-- Security headers -->
+    <!-- Temporarily modified CSP for local testing -->
+    <!--<meta http-equiv="Content-Security-Policy" content="default-src 'self' cdnjs.cloudflare.com fonts.googleapis.com fonts.gstatic.com; script-src 'self' cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' cdnjs.cloudflare.com fonts.googleapis.com 'unsafe-inline';">-->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; style-src * 'unsafe-inline';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <!-- Modified to support both server and local file access -->
+    <link rel="stylesheet" href="styles.css" id="main-css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js" integrity="sha512-9ROtBGZMU1mJYUSSQltVDjpX9dJACizXJyzRUgx3twW64R+JXf7YrZaIVrfVfQKs+K8DGl9QNtAqGVDfJLVh+A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js" integrity="sha512-99VK/f0/XwDGk0QHWZ3SsXjhzFnrd7DgTGYjzNGWFfUq/CwPzgN6WxRJNs972TIaWOafLYn7aUkNFZiCe6gOw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Add favicon -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <!-- Add script to handle path issues when loading locally -->
+    <script>
+        // Fix CSS path when loading from file:// protocol
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.protocol === 'file:') {
+                // We're loading from a local file
+                var cssLink = document.getElementById('main-css');
+                var currentPath = window.location.pathname;
+                var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                cssLink.href = directoryPath + '/styles.css';
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Python Debugging Showcase</h1>
+            <p class="subtitle">Examples of Python bugs and their solutions</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="intro">
+            <h2>My Debugging Portfolio</h2>
+            <p>
+                Welcome to my Python debugging showcase. This portfolio demonstrates my ability to identify,
+                analyze, and fix various types of bugs in Python applications. Each example includes:
+            </p>
+            <ul class="feature-list">
+                <li>Side-by-side code comparisons of buggy and fixed implementations</li>
+                <li>Detailed explanations of the problem and solution</li>
+                <li>Best practices for avoiding similar issues</li>
+            </ul>
+            <div class="cta-container">
+                <a href="https://www.fiverr.com/rehansajid099" target="_blank" rel="noopener noreferrer" class="cta-button">Hire Me on Fiverr</a>
+            </div>
+        </section>
+
+        <section class="featured-example">
+            <h2>Featured Example: GUI Application Bug Fix</h2>
+            
+            <div class="bug-explanation">
+                <h3>UI Freezing Bug in Tkinter Application</h3>
+                <p>
+                    This common but critical bug in Tkinter applications causes the entire user interface 
+                    to freeze, making the application completely unresponsive. The issue occurs when 
+                    long-running operations or infinite loops run in the main thread.
+                </p>
+            </div>
+            
+            <div class="code-comparison">
+                <div class="buggy-code">
+                    <div class="code-header">
+                        <span class="filename">Buggy Implementation</span>
+                    </div>
+                    <pre><code class="language-python"># BUG: Inefficient update approach that freezes UI
+def update_counter(self):
+    while True:
+        current_time = time.strftime("%H:%M:%S")
+        self.time_label.config(text=current_time)
+        time.sleep(1)  # This will freeze the GUI</code></pre>
+                    <div class="bug-explanation">
+                        <p>The bug: Using an infinite loop with <code>time.sleep()</code> inside a GUI method blocks the main thread and freezes the application.</p>
+                    </div>
+                </div>
+                
+                <div class="fixed-code">
+                    <div class="code-header">
+                        <span class="filename">Fixed Implementation</span>
+                    </div>
+                    <pre><code class="language-python"># FIXED: Efficient update method using after()
+def update_time(self):
+    current_time = time.strftime("%H:%M:%S")
+    self.time_label.config(text=current_time)
+    # Schedule the next update after 1000ms (1 second)
+    self.root.after(1000, self.update_time)</code></pre>
+                    <div class="bug-explanation">
+                        <p>The fix: Using Tkinter's <code>after()</code> method to schedule updates non-blockingly, keeping the UI responsive.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <a href="examples/gui_example.html" class="view-button">View Full GUI Bug Analysis</a>
+        </section>
+
+        <section class="bug-categories">
+            <h2>Bug Categories</h2>
+            
+            <div class="category-cards">
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>UI/Threading Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>UI Freezing Problems</li>
+                            <li>Event Handler Errors</li>
+                            <li>Resource Management Issues</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+button = tk.Button(frame, command=self.handler())</code></pre>
+                        <a href="examples/gui_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Algorithm & Performance</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Inefficient Algorithms</li>
+                            <li>Memory Leaks</li>
+                            <li>Off-By-One Errors</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+for i in range(len(data) - 3):  # Off-by-one error</code></pre>
+                        <a href="examples/algorithm_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Data Processing Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Type Conversion Errors</li>
+                            <li>Missing Data Handling</li>
+                            <li>Format Inconsistencies</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+result = data[column] / total  # No None check</code></pre>
+                        <a href="examples/data_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Web Development Bugs</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Security Vulnerabilities</li>
+                            <li>Input Validation Issues</li>
+                            <li>Authentication Problems</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+users[username] = {'password': password}  # Plaintext!</code></pre>
+                        <a href="examples/web_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Performance Optimization</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Memory Inefficiency</li>
+                            <li>O(n²) Algorithms</li>
+                            <li>String Concatenation Issues</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+for i in range(1000):
+    result += str(i)  # Creates 1000 strings</code></pre>
+                        <a href="examples/performance_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Concurrency & Threading</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Race Conditions</li>
+                            <li>Deadlocks</li>
+                            <li>Thread Management Issues</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+# Shared dictionary without locks
+self.results[url] = response.text</code></pre>
+                        <a href="examples/concurrency_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Database Issues</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Connection Leaks</li>
+                            <li>SQL Injection Vulnerabilities</li>
+                            <li>Transaction Management Errors</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+query = f"SELECT * FROM users WHERE name = '{user_input}'"</code></pre>
+                        <a href="examples/database_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>Testing Failures</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Inadequate Test Coverage</li>
+                            <li>Incorrect Test Assertions</li>
+                            <li>Test Dependency Issues</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+def test_division():
+    assert divide(10, 0) == 0  # Doesn't test exception</code></pre>
+                        <a href="examples/testing_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="card-header">
+                        <h3>API Integration Problems</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul>
+                            <li>Error Handling Failures</li>
+                            <li>Rate Limit Issues</li>
+                            <li>Authentication Problems</li>
+                        </ul>
+                        <pre><code class="language-python"># Bug Example
+response = requests.get(api_url)
+data = response.json()  # No error checking</code></pre>
+                        <a href="examples/api_example.html" class="view-category">View Examples</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section" id="contact">
+            <h2>Need Help With Your Python Code?</h2>
+            <p>
+                I specialize in fixing complex Python bugs and optimizing code for better performance.
+                Contact me to discuss your project needs!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank" rel="noopener noreferrer">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+            <div class="footer-links">
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize syntax highlighting
+            hljs.highlightAll();
+            
+            // Add smooth scrolling for navigation
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

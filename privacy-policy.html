@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | Python Debugging Portfolio</title>
+    <meta name="description" content="Privacy policy for the Python debugging showcase portfolio site">
+    <!-- Security headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' cdnjs.cloudflare.com fonts.googleapis.com fonts.gstatic.com; script-src 'self' cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' cdnjs.cloudflare.com fonts.googleapis.com 'unsafe-inline';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <link rel="stylesheet" href="styles.css" id="main-css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <!-- Add script to handle path issues when loading locally -->
+    <script>
+        // Fix CSS path when loading from file:// protocol
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.protocol === 'file:') {
+                // We're loading from a local file
+                var cssLink = document.getElementById('main-css');
+                var currentPath = window.location.pathname;
+                var directoryPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                cssLink.href = directoryPath + '/styles.css';
+            }
+        });
+    </script>
+</head>
+<body>
+    <a href="#main" class="skip-to-content">Skip to content</a>
+    
+    <header>
+        <div class="container">
+            <h1>Privacy Policy</h1>
+            <p class="subtitle">Python Debugging Portfolio</p>
+        </div>
+    </header>
+
+    <main id="main" class="container">
+        <div class="breadcrumb">
+            <a href="index.html">Home</a> &gt; Privacy Policy
+        </div>
+        
+        <section>
+            <h2>Privacy Policy</h2>
+            <p>Last updated: June 2024</p>
+            
+            <p>Thank you for visiting my Python debugging portfolio website. This Privacy Policy explains how I collect, use, and protect your information when you visit this website.</p>
+            
+            <h3>Information Collection</h3>
+            <p>This website does not collect personal information except when you voluntarily provide it by contacting me through the provided contact information. The information you may provide includes:</p>
+            <ul>
+                <li>Your name</li>
+                <li>Email address</li>
+                <li>Information related to your project needs</li>
+            </ul>
+            
+            <h3>Use of Information</h3>
+            <p>The information you provide is used solely for the purpose of:</p>
+            <ul>
+                <li>Responding to your inquiries</li>
+                <li>Providing the services you request</li>
+                <li>Improving the website content and user experience</li>
+            </ul>
+            
+            <h3>Cookies and Tracking</h3>
+            <p>This website may use cookies to enhance your browsing experience. Cookies are small files that are stored on your device. You can set your browser to refuse cookies or alert you when cookies are being sent.</p>
+            
+            <h3>Third-Party Services</h3>
+            <p>This website may use third-party services such as:</p>
+            <ul>
+                <li>External fonts from Google Fonts</li>
+                <li>JavaScript libraries from CDN providers</li>
+                <li>Links to my Fiverr profile</li>
+            </ul>
+            <p>These third-party services may collect information about your visit to this website. Please refer to their respective privacy policies for more information.</p>
+            
+            <h3>Data Security</h3>
+            <p>I take reasonable measures to protect your information. However, no method of transmission over the Internet is 100% secure. While I strive to use commercially acceptable means to protect your personal information, I cannot guarantee its absolute security.</p>
+            
+            <h3>External Links</h3>
+            <p>This website contains links to external sites including my Fiverr profile. I am not responsible for the content or privacy practices of those sites.</p>
+            
+            <h3>Children's Privacy</h3>
+            <p>This website is not intended for individuals under the age of 16. I do not knowingly collect personal information from children.</p>
+            
+            <h3>Changes to This Privacy Policy</h3>
+            <p>I may update this Privacy Policy from time to time. I will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.</p>
+            
+            <h3>Contact Information</h3>
+            <p>If you have any questions about this Privacy Policy, please contact me at:</p>
+            <div class="contact-info">
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank" rel="noopener noreferrer">rehansajid099</a></p>
+            </div>
+        </section>
+        
+        <a href="index.html" class="back-button">Back to Home</a>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+            <div class="footer-links">
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="terms-of-service.html">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

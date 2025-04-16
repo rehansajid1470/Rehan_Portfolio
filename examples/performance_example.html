@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Performance Bug Fixes</h1>
+            <p class="subtitle">Optimizing inefficient Python code for speed and resource usage</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Performance Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common performance bottlenecks in Python code and how to fix them.
+                Performance bugs might not cause immediate failures but can lead to slow execution, high memory usage, and decreased user experience.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Large Dataset Processor</h3>
+                <pre><code class="language-python">class DataProcessor:
+    def __init__(self, data_file):
+        """Initialize with path to data file."""
+        self.data_file = data_file
+        self.data = []
+        
+    def load_data(self):
+        """Load all data into memory at once."""
+        with open(self.data_file, 'r') as f:
+            self.data = [line.strip() for line in f.readlines()]
+        
+    def process_data(self):
+        """Process data inefficiently."""
+        results = []
+        
+        for i in range(len(self.data)):
+            # Expensive operation for each item
+            processed = self._complex_transformation(self.data[i])
+            results.append(processed)
+            
+        return results
+    
+    def _complex_transformation(self, item):
+        """Simulate a complex data transformation."""
+        # Expensive computation
+        for _ in range(1000):
+            item = item + "x"
+            item = item[:-1]
+        return item</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Performance Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Loading Entire Dataset into Memory</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def load_data(self):
+    """Load all data into memory at once."""
+    # BUG: Loads entire file into memory, problematic for large files
+    with open(self.data_file, 'r') as f:
+        self.data = [line.strip() for line in f.readlines()]</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Loading the entire file into memory at once causes high memory usage and can crash with large files.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def process_data_stream(self):
+    """FIXED: Process data as a stream instead of loading all at once."""
+    results = []
+    
+    # Process one line at a time
+    with open(self.data_file, 'r') as f:
+        for line in f:
+            # Process each line as it's read
+            processed = self._complex_transformation(line.strip())
+            results.append(processed)
+            
+    return results</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Processing data as a stream one line at a time, which uses constant memory regardless of file size.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bug-impact">
+                    <h4>Impact & Explanation</h4>
+                    <p>Memory inefficiency has significant consequences:</p>
+                    <ul>
+                        <li>Can cause program crashes when processing large files that exceed available memory</li>
+                        <li>Slows down the system by causing excessive memory paging/swapping</li>
+                        <li>Makes the program unusable for large datasets</li>
+                        <li>Prevents scaling to production-sized data</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Inefficient String Operations</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def _complex_transformation(self, item):
+    """Simulate a complex data transformation."""
+    # BUG: Inefficient string operations
+    # Strings are immutable, so this creates 2000 string objects
+    for _ in range(1000):
+        item = item + "x"  # Creates a new string
+        item = item[:-1]   # Creates another new string
+    return item</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Repeatedly concatenating and slicing strings creates thousands of temporary objects, wasting CPU and memory.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def _complex_transformation(self, item):
+    """Simulate a complex data transformation."""
+    # FIXED: More efficient approach that avoids string concatenation
+    
+    # If we need to modify the string repeatedly, convert to list first
+    chars = list(item)
+    
+    # Modify the list in-place (much more efficient)
+    # This is for illustration - the actual logic would depend on requirements
+    for _ in range(10):  # Reduced iterations as an optimization
+        chars.append('x')
+        chars.pop()
+        
+    # Convert back to string only once at the end
+    return ''.join(chars)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using a list for repeated modifications and joining back to a string only once, dramatically reducing object creation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Inefficient List Access Patterns</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def find_duplicates(self, data_list):
+    """Find all duplicate items in a list."""
+    # BUG: O(n²) algorithm - very inefficient for large lists
+    duplicates = []
+    
+    for i in range(len(data_list)):
+        for j in range(len(data_list)):
+            # Skip comparing the same index
+            if i != j and data_list[i] == data_list[j]:
+                if data_list[i] not in duplicates:
+                    duplicates.append(data_list[i])
+                    
+    return duplicates</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using nested loops to find duplicates results in O(n²) time complexity, which is extremely slow for large lists.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def find_duplicates(self, data_list):
+    """Find all duplicate items in a list."""
+    # FIXED: O(n) algorithm using a set for tracking
+    seen = set()
+    duplicates = set()
+    
+    for item in data_list:
+        # If we've seen this item before, it's a duplicate
+        if item in seen:
+            duplicates.add(item)
+        else:
+            seen.add(item)
+            
+    return list(duplicates)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using a set for O(1) lookups reduces time complexity to O(n), making it dramatically faster for large datasets.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import csv
+from collections import defaultdict
+import itertools
+
+class OptimizedDataProcessor:
+    def __init__(self, data_file):
+        """Initialize with path to data file."""
+        self.data_file = data_file
+        # No longer store all data in memory
+        
+    def process_data_stream(self, batch_size=1000):
+        """Process data as a stream with batching for efficiency."""
+        results = []
+        
+        with open(self.data_file, 'r') as f:
+            # Process in batches for better performance
+            for batch in self._batch_reader(f, batch_size):
+                processed_batch = [self._efficient_transformation(item.strip()) 
+                                  for item in batch]
+                results.extend(processed_batch)
+                
+        return results
+    
+    def _batch_reader(self, file_object, batch_size):
+        """Read file in batches to balance memory usage and performance."""
+        batch = []
+        for line in file_object:
+            batch.append(line)
+            if len(batch) >= batch_size:
+                yield batch
+                batch = []
+        
+        # Don't forget the last batch if it's smaller than batch_size
+        if batch:
+            yield batch
+    
+    def _efficient_transformation(self, item):
+        """Perform data transformation efficiently."""
+        # Use bytearray for mutable string-like operations if needed
+        # Or simply avoid unnecessary operations
+        return item  # Simplified for example
+    
+    def find_duplicates(self, data_list):
+        """Find all duplicate items in a list efficiently."""
+        seen = set()
+        duplicates = set()
+        
+        for item in data_list:
+            if item in seen:
+                duplicates.add(item)
+            else:
+                seen.add(item)
+                
+        return list(duplicates)
+    
+    def count_frequencies(self, data_list):
+        """Count frequency of each item efficiently."""
+        # Use Counter from collections for best performance
+        from collections import Counter
+        return Counter(data_list)
+    
+    def process_csv_efficiently(self, csv_file, target_columns):
+        """Process CSV data with memory efficiency."""
+        results = defaultdict(list)
+        
+        with open(csv_file, 'r', newline='') as f:
+            reader = csv.DictReader(f)
+            
+            # Process only the columns we need
+            for row in reader:
+                for col in target_columns:
+                    if col in row:
+                        # Process and store only needed columns
+                        results[col].append(row[col])
+        
+        return results
+    
+    def find_matches(self, list1, list2):
+        """Find matching elements between two lists efficiently."""
+        # Convert the second list to a set for O(1) lookups
+        set2 = set(list2)
+        return [item for item in list1 if item in set2]</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Performance Optimization</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Use Generators for Large Datasets</h3>
+                    <p>Process data one item at a time instead of loading everything into memory.</p>
+                    <pre><code class="language-python"># Bad: Loads everything into memory
+data = [process(line) for line in open('huge_file.txt')]
+
+# Good: Processes one line at a time
+def process_lines(file_path):
+    with open(file_path) as f:
+        for line in f:
+            yield process(line)
+            
+# Use the generator
+for processed_line in process_lines('huge_file.txt'):
+    do_something(processed_line)</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Use Appropriate Data Structures</h3>
+                    <p>Choose the right data structure for the operation you're performing.</p>
+                    <pre><code class="language-python"># Bad: List lookups are O(n)
+if item in my_large_list:  # Slow for large lists
+    process(item)
+    
+# Good: Set lookups are O(1)
+if item in my_set:  # Much faster
+    process(item)
+
+# Good: Dictionary for key-value lookups
+if key in my_dict:  # O(1) lookup
+    value = my_dict[key]</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Avoid String Concatenation in Loops</h3>
+                    <p>Strings are immutable, so each concatenation creates a new object.</p>
+                    <pre><code class="language-python"># Bad: Creates a new string each time
+result = ""
+for i in range(1000):
+    result += str(i)  # Creates 1000 strings
+    
+# Good: Use join on a list
+parts = []
+for i in range(1000):
+    parts.append(str(i))
+result = ''.join(parts)  # Creates only 1 final string</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Use Built-in Functions and Libraries</h3>
+                    <p>Python's built-in functions and standard library are usually optimized and faster.</p>
+                    <pre><code class="language-python"># Bad: Reinventing the wheel
+def get_max(numbers):
+    max_so_far = numbers[0]
+    for num in numbers[1:]:
+        if num > max_so_far:
+            max_so_far = num
+    return max_so_far
+    
+# Good: Use built-in functions
+max_value = max(numbers)  # Faster and cleaner
+
+# Good: Use specialized libraries for data processing
+import numpy as np
+data = np.array(numbers)
+average = np.mean(data)  # Much faster than manual calculation</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Python Performance?</h2>
+            <p>
+                I specialize in identifying and fixing performance bottlenecks in Python applications.
+                Contact me to speed up your code!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html> 

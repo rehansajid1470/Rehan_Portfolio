@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concurrency Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Concurrency Bug Fixes</h1>
+            <p class="subtitle">Solving threading and parallel processing issues in Python</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Concurrency Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common concurrency bugs in Python's threading and multiprocessing modules.
+                Concurrency bugs are particularly challenging because they can be non-deterministic, hard to reproduce, and cause subtle data corruption.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Threaded Data Processor</h3>
+                <pre><code class="language-python">import threading
+import requests
+import time
+
+class WebDataFetcher:
+    def __init__(self, url_list):
+        self.urls = url_list
+        self.results = {}
+        
+    def fetch_all_data(self, max_threads=5):
+        """Fetch data from all URLs using multiple threads."""
+        threads = []
+        
+        for url in self.urls:
+            # Create a thread for each URL
+            thread = threading.Thread(target=self.fetch_url, args=(url,))
+            threads.append(thread)
+            thread.start()
+            
+            # Limit active threads
+            if len(threads) >= max_threads:
+                # Wait for the first thread to complete
+                threads[0].join()
+                threads.pop(0)
+        
+        # Wait for remaining threads
+        for thread in threads:
+            thread.join()
+            
+        return self.results
+    
+    def fetch_url(self, url):
+        """Fetch data from a single URL."""
+        try:
+            response = requests.get(url, timeout=10)
+            # Store results in the shared dictionary
+            self.results[url] = response.text
+        except Exception as e:
+            self.results[url] = f"Error: {str(e)}"</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Concurrency Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Race Condition with Shared Dictionary</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def fetch_url(self, url):
+    """Fetch data from a single URL."""
+    try:
+        response = requests.get(url, timeout=10)
+        # BUG: Race condition - dictionary is not thread-safe
+        self.results[url] = response.text
+    except Exception as e:
+        self.results[url] = f"Error: {str(e)}"</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Writing to the shared dictionary from multiple threads without synchronization can cause race conditions, potentially corrupting the dictionary.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def __init__(self, url_list):
+    self.urls = url_list
+    self.results = {}
+    # FIXED: Add a lock for thread synchronization
+    self.result_lock = threading.Lock()
+    
+def fetch_url(self, url):
+    """Fetch data from a single URL."""
+    try:
+        response = requests.get(url, timeout=10)
+        # FIXED: Protect shared dictionary access with a lock
+        with self.result_lock:
+            self.results[url] = response.text
+    except Exception as e:
+        with self.result_lock:
+            self.results[url] = f"Error: {str(e)}"</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using a threading.Lock to ensure only one thread can modify the results dictionary at a time, preventing race conditions.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bug-impact">
+                    <h4>Impact & Explanation</h4>
+                    <p>Race conditions in shared data structures can cause:</p>
+                    <ul>
+                        <li>Corrupted or lost data when multiple threads write simultaneously</li>
+                        <li>Inconsistent program state leading to unexpected behavior</li>
+                        <li>Hard-to-reproduce bugs that only occur under specific timing conditions</li>
+                        <li>Program crashes from dictionary corruption or other data structure corruption</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Improper Thread Management</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def fetch_all_data(self, max_threads=5):
+    """Fetch data from all URLs using multiple threads."""
+    threads = []
+    
+    for url in self.urls:
+        # Create a thread for each URL
+        thread = threading.Thread(target=self.fetch_url, args=(url,))
+        threads.append(thread)
+        thread.start()
+        
+        # BUG: Inefficient thread management
+        # Waiting for the first thread regardless of completion status
+        if len(threads) >= max_threads:
+            threads[0].join()
+            threads.pop(0)
+    
+    # Wait for remaining threads
+    for thread in threads:
+        thread.join()
+        
+    return self.results</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: This implementation always waits for the first created thread to finish, which can lead to uneven work distribution and inefficient resource usage.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def fetch_all_data(self, max_threads=5):
+    """Fetch data from all URLs using multiple threads."""
+    # FIXED: Use a thread pool for better thread management
+    from concurrent.futures import ThreadPoolExecutor
+    
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        # Submit all tasks and get futures
+        future_to_url = {
+            executor.submit(self.fetch_url, url): url 
+            for url in self.urls
+        }
+        
+        # Process results as they complete
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                # Get the result (or exception)
+                future.result()
+            except Exception as e:
+                print(f"Thread for {url} generated an exception: {e}")
+    
+    return self.results</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using ThreadPoolExecutor from concurrent.futures provides proper thread management, load balancing, and error handling.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Deadlock from Nested Locks</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">class ResourceManager:
+    def __init__(self):
+        self.resource_a_lock = threading.Lock()
+        self.resource_b_lock = threading.Lock()
+        self.data_a = {}
+        self.data_b = {}
+    
+    def update_a_then_b(self, key, value):
+        # BUG: Potential deadlock from lock ordering
+        with self.resource_a_lock:
+            self.data_a[key] = value
+            # Process data_a...
+            time.sleep(0.1)  # Simulate processing
+            
+            with self.resource_b_lock:
+                # Update data_b based on data_a
+                self.data_b[key] = value + "_processed"
+    
+    def update_b_then_a(self, key, value):
+        # BUG: Reverse lock order can cause deadlock
+        with self.resource_b_lock:
+            self.data_b[key] = value
+            # Process data_b...
+            time.sleep(0.1)  # Simulate processing
+            
+            with self.resource_a_lock:
+                # Update data_a based on data_b
+                self.data_a[key] = value + "_updated"</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using nested locks in different orders in different methods can cause deadlock when multiple threads call these methods simultaneously.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">class ResourceManager:
+    def __init__(self):
+        self.resource_a_lock = threading.Lock()
+        self.resource_b_lock = threading.Lock()
+        self.data_a = {}
+        self.data_b = {}
+    
+    # FIXED: Consistent lock acquisition order to prevent deadlocks
+    def update_a_then_b(self, key, value):
+        # Always acquire locks in the same order
+        with self.resource_a_lock:
+            self.data_a[key] = value
+            # Process data_a...
+            time.sleep(0.1)  # Simulate processing
+            
+            with self.resource_b_lock:
+                # Update data_b based on data_a
+                self.data_b[key] = value + "_processed"
+    
+    def update_b_then_a(self, key, value):
+        # FIXED: Match the same lock order as other methods
+        # Rewrite logic to maintain same lock ordering
+        with self.resource_a_lock:
+            # Store temporary data or logic
+            temp_value = value
+            
+            with self.resource_b_lock:
+                self.data_b[key] = value
+                # Process data_b...
+                time.sleep(0.1)
+                result = value + "_updated"
+            
+            # Now update data_a with the result
+            self.data_a[key] = result</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Ensuring consistent lock acquisition order across all methods prevents the possibility of deadlock by eliminating circular wait conditions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import threading
+import time
+import requests
+import concurrent.futures
+from queue import Queue
+
+class ThreadSafeWebDataFetcher:
+    def __init__(self, url_list):
+        self.urls = url_list
+        self.results = {}
+        self.result_lock = threading.Lock()
+        
+    def fetch_all_data(self, max_threads=5):
+        """Fetch data from all URLs using a thread pool."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            # Map URLs to futures
+            future_to_url = {executor.submit(self.fetch_url, url): url for url in self.urls}
+            
+            # Process results as they complete
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    # This will raise any exceptions from the thread
+                    future.result()
+                except Exception as e:
+                    print(f"Thread for {url} generated an exception: {e}")
+        
+        return self.results
+    
+    def fetch_url(self, url):
+        """Fetch data from a single URL with proper synchronization."""
+        try:
+            response = requests.get(url, timeout=10)
+            with self.result_lock:
+                self.results[url] = response.text
+        except Exception as e:
+            with self.result_lock:
+                self.results[url] = f"Error: {str(e)}"
+                
+    def fetch_with_retry(self, url, max_retries=3, backoff_factor=0.5):
+        """Fetch URL with retry logic and exponential backoff."""
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()  # Raise exception for HTTP errors
+                
+                with self.result_lock:
+                    self.results[url] = response.text
+                return
+            except requests.RequestException as e:
+                wait_time = backoff_factor * (2 ** attempt)
+                print(f"Retry {attempt + 1}/{max_retries} for {url} after {wait_time}s: {e}")
+                time.sleep(wait_time)
+        
+        # If all retries fail
+        with self.result_lock:
+            self.results[url] = f"Error: All {max_retries} retries failed"
+
+
+class ThreadSafeCounter:
+    def __init__(self):
+        self.value = 0
+        self.lock = threading.Lock()
+        
+    def increment(self):
+        with self.lock:
+            self.value += 1
+            
+    def decrement(self):
+        with self.lock:
+            self.value -= 1
+            
+    def get_value(self):
+        with self.lock:
+            return self.value
+
+
+class ProducerConsumerQueue:
+    def __init__(self, max_size=10):
+        self.queue = Queue(maxsize=max_size)
+        self.stop_event = threading.Event()
+        
+    def producer(self, items):
+        """Produce items and put them in the queue."""
+        for item in items:
+            if self.stop_event.is_set():
+                break
+                
+            try:
+                # Put with a timeout to allow checking stop_event
+                self.queue.put(item, timeout=1)
+                print(f"Produced: {item}")
+            except Queue.Full:
+                print("Queue full, producer waiting...")
+                
+        # Signal end of production
+        if not self.stop_event.is_set():
+            self.queue.put(None)
+            
+    def consumer(self):
+        """Consume items from the queue."""
+        while not self.stop_event.is_set():
+            try:
+                # Get with a timeout to allow checking stop_event
+                item = self.queue.get(timeout=1)
+                
+                # None is the signal to stop
+                if item is None:
+                    # Forward the stop signal to other consumers
+                    self.queue.put(None)
+                    break
+                    
+                print(f"Consumed: {item}")
+                # Process the item
+                time.sleep(0.5)  # Simulate processing
+                self.queue.task_done()
+            except Queue.Empty:
+                continue
+                
+    def stop_all(self):
+        """Signal all threads to stop."""
+        self.stop_event.set()
+        
+    def run(self, items, num_producers=1, num_consumers=2):
+        """Run the producer-consumer pattern."""
+        # Create and start producer threads
+        producer_threads = []
+        for _ in range(num_producers):
+            thread = threading.Thread(target=self.producer, args=(items,))
+            thread.start()
+            producer_threads.append(thread)
+            
+        # Create and start consumer threads
+        consumer_threads = []
+        for _ in range(num_consumers):
+            thread = threading.Thread(target=self.consumer)
+            thread.start()
+            consumer_threads.append(thread)
+            
+        # Wait for all producers to finish
+        for thread in producer_threads:
+            thread.join()
+            
+        # Wait for all consumers to finish
+        for thread in consumer_threads:
+            thread.join()
+
+
+# Safe singleton pattern
+class Singleton:
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(Singleton, cls).__new__(cls)
+                # Initialize the instance
+                cls._instance.init_data(*args, **kwargs)
+        return cls._instance
+        
+    def init_data(self, *args, **kwargs):
+        # Called only once when instance is created
+        pass</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Concurrency</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Use Thread-Safe Data Structures</h3>
+                    <p>Choose the right data structures for threaded applications.</p>
+                    <pre><code class="language-python"># Thread-safe queue
+from queue import Queue
+q = Queue()
+
+# Thread-safe counter
+from threading import Lock
+class Counter:
+    def __init__(self):
+        self.value = 0
+        self.lock = Lock()
+    
+    def increment(self):
+        with self.lock:
+            self.value += 1</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Always Use Context Managers for Locks</h3>
+                    <p>The 'with' statement ensures locks are properly released even if exceptions occur.</p>
+                    <pre><code class="language-python"># Good practice
+lock = threading.Lock()
+
+with lock:
+    # Critical section
+    modify_shared_resource()
+    
+# Bad practice - lock might never be released if an exception occurs
+lock.acquire()
+modify_shared_resource()  # If this throws an exception...
+lock.release()            # ...this never executes!</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Prefer Higher-Level Abstractions</h3>
+                    <p>Use concurrent.futures instead of managing threads directly.</p>
+                    <pre><code class="language-python"># Better approach using ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor(max_workers=5) as executor:
+    # Submit tasks and get futures
+    futures = [executor.submit(process_item, item) 
+               for item in items]
+    
+    # Process results as they complete
+    for future in concurrent.futures.as_completed(futures):
+        result = future.result()</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Consider Using Multiprocessing for CPU-Bound Tasks</h3>
+                    <p>Python's GIL limits threading for CPU-intensive tasks.</p>
+                    <pre><code class="language-python"># For CPU-bound tasks, use processes not threads
+from concurrent.futures import ProcessPoolExecutor
+
+# Similar API to ThreadPoolExecutor
+with ProcessPoolExecutor(max_workers=4) as executor:
+    results = list(executor.map(cpu_intensive_function, items))
+    
+# Or directly with multiprocessing
+import multiprocessing
+
+pool = multiprocessing.Pool(processes=4)
+results = pool.map(cpu_intensive_function, items)
+pool.close()
+pool.join()</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Concurrency Bugs?</h2>
+            <p>
+                I specialize in solving threading and multiprocessing issues in Python applications.
+                Contact me to make your concurrent code reliable!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html> 

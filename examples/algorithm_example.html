@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Algorithm Bug Fixes</h1>
+            <p class="subtitle">Optimizing Python algorithmic implementations</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; Algorithm Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This section showcases common algorithmic bugs in Python code and how to fix them.
+                Algorithmic bugs can lead to incorrect results, poor performance, or excessive resource usage.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Data Processor Class</h3>
+                <pre><code class="language-python">class DataProcessor:
+    def __init__(self, cache_size=100):
+        self.cache = {}
+        self.cache_size = cache_size
+        self.processed_count = 0
+    
+    def process_data(self, data_id, data_points):
+        """Process time series data and cache results."""
+        if data_id in self.cache:
+            return self.cache[data_id]
+        
+        # Calculate moving average with window size 3
+        result = []
+        # Process data points with sliding window algorithm
+        # [This contains several bugs...]
+        
+        return result</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Algorithm Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: Sliding Window Implementation Error</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Calculate moving average with window size 3
+result = []
+# BUG: Incorrect sliding window implementation
+for i in range(len(data_points) - 3):
+    window_avg = sum(data_points[i:i+3]) / 3
+    result.append(window_avg)
+    
+# Input: [10, 20, 30, 40, 50]
+# Output: [20.0]  # Only one window calculated</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using <code>range(len(data_points) - 3)</code> skips valid windows and processes fewer elements than intended.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Calculate moving average with window size 3
+result = []
+# FIXED: Correct sliding window implementation
+for i in range(len(data_points) - 2):
+    window_avg = sum(data_points[i:i+3]) / 3
+    result.append(window_avg)
+    
+# Input: [10, 20, 30, 40, 50]
+# Output: [20.0, 30.0, 40.0]  # All three valid windows</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using <code>range(len(data_points) - 2)</code> correctly processes all valid windows of size 3.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bug-impact">
+                    <h4>Impact & Explanation</h4>
+                    <p>This off-by-one error in the range calculation causes:</p>
+                    <ul>
+                        <li>Missing data points in the output (fewer windows processed than expected)</li>
+                        <li>For an array of length N, only N-3 windows are processed instead of N-2</li>
+                        <li>The last valid window is never calculated</li>
+                    </ul>
+                    <p>This is a classic off-by-one error that often occurs when calculating ranges for sliding windows or subarrays.</p>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Cache Management Vulnerability</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Cache management
+if len(self.cache) >= self.cache_size:
+    # Remove oldest item when cache is full
+    oldest_key = next(iter(self.cache))
+    del self.cache[oldest_key]
+    
+self.cache[data_id] = result</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using <code>next(iter(self.cache))</code> doesn't necessarily remove the oldest item, as Python dictionaries don't guarantee insertion order in all Python versions.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Import for OrderedDict
+from collections import OrderedDict
+
+# In __init__
+self.cache = OrderedDict()
+
+# Cache management
+if len(self.cache) >= self.cache_size:
+    # Remove oldest item (first inserted) when cache is full
+    self.cache.popitem(last=False)
+    
+self.cache[data_id] = result
+# Move this key to the end (most recently used)
+self.cache.move_to_end(data_id)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using <code>OrderedDict</code> with <code>popitem(last=False)</code> to properly implement an LRU (Least Recently Used) cache.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Inefficient Duplicate Detection</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Inefficient approach to find duplicates
+duplicates = []
+for i in range(len(data_points)):
+    for j in range(len(data_points)):
+        if i != j and data_points[i] == data_points[j] and data_points[i] not in duplicates:
+            duplicates.append(data_points[i])
+            
+# O(n²) time complexity with redundant checks</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using nested loops creates O(n²) time complexity and contains redundant checks, extremely inefficient for large datasets.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Efficient approach to find duplicates
+seen = set()
+duplicates = set()
+
+for item in data_points:
+    if item in seen:
+        duplicates.add(item)
+    else:
+        seen.add(item)
+        
+duplicates = list(duplicates)
+            
+# O(n) time complexity with no redundant checks</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using sets for O(1) lookups reduces time complexity to O(n) and eliminates redundant checks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">from collections import OrderedDict
+
+class DataProcessor:
+    def __init__(self, cache_size=100):
+        self.cache = OrderedDict()  # Fixed: Use OrderedDict for proper cache ordering
+        self.cache_size = cache_size
+        self.processed_count = 0
+    
+    def process_data(self, data_id, data_points):
+        """Process time series data and cache results."""
+        # Check if result is already in cache
+        if data_id in self.cache:
+            # Move to end (most recently used)
+            self.cache.move_to_end(data_id)
+            return self.cache[data_id]
+        
+        # Validate input
+        if not data_points or len(data_points) < 3:
+            return []
+        
+        # Calculate moving average with window size 3
+        result = []
+        # Fixed: Correct sliding window implementation
+        for i in range(len(data_points) - 2):
+            window_avg = sum(data_points[i:i+3]) / 3
+            result.append(window_avg)
+            
+        # Find duplicates efficiently (if needed)
+        if self.has_duplicates(data_points):
+            # Process duplicates differently if required
+            pass
+            
+        # Cache management
+        if len(self.cache) >= self.cache_size:
+            # Remove oldest item (first inserted) when cache is full
+            self.cache.popitem(last=False)
+            
+        self.cache[data_id] = result
+        self.processed_count += 1
+        
+        return result
+    
+    def has_duplicates(self, data_points):
+        """Check if data contains duplicates efficiently."""
+        # Fixed: Efficient duplicate detection
+        return len(set(data_points)) < len(data_points)
+        
+    def find_duplicates(self, data_points):
+        """Find all duplicate values in data points."""
+        # Fixed: Efficient approach to find duplicates
+        seen = set()
+        duplicates = set()
+
+        for item in data_points:
+            if item in seen:
+                duplicates.add(item)
+            else:
+                seen.add(item)
+                
+        return list(duplicates)</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for Algorithm Implementation</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Watch for Off-By-One Errors</h3>
+                    <p>Be careful with range calculations, especially in sliding windows, subarrays, and string slicing.</p>
+                    <pre><code class="language-python"># CORRECT
+for i in range(len(array) - (window_size - 1)):
+    # This processes all valid windows
+
+# INCORRECT
+for i in range(len(array) - window_size):
+    # This skips valid windows</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Use Appropriate Data Structures</h3>
+                    <p>Choose data structures based on the operations you need to perform.</p>
+                    <pre><code class="language-python"># Use sets for fast membership testing
+seen = set(items)
+if item in seen:  # O(1) operation
+
+# Use OrderedDict for ordered caches
+from collections import OrderedDict
+cache = OrderedDict()  # Maintains insertion order</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Optimize Time Complexity</h3>
+                    <p>Always analyze the time complexity of your algorithms and optimize where possible.</p>
+                    <pre><code class="language-python"># O(n) approach
+seen = {}
+for i, num in enumerate(nums):
+    complement = target - num
+    if complement in seen:
+        return [seen[complement], i]
+    seen[num] = i
+    
+# O(n²) approach - much slower for large inputs
+for i in range(len(nums)):
+    for j in range(i+1, len(nums)):
+        if nums[i] + nums[j] == target:
+            return [i, j]</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Your Algorithms?</h2>
+            <p>
+                I specialize in optimizing Python algorithms and fixing performance issues.
+                Contact me to discuss your project!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html>

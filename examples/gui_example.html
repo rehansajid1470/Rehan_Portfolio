@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUI Application Bug Fixes | Python Debugging Portfolio</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>GUI Application Bug Fixes</h1>
+            <p class="subtitle">Resolving common issues in Tkinter applications</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="breadcrumb">
+            <a href="../index.html">Home</a> &gt; GUI Application Bug Fixes
+        </div>
+        
+        <section class="bug-overview">
+            <h2>Overview</h2>
+            <p>
+                This Python Tkinter application contained several critical bugs that affected usability,
+                performance, and stability. The application is a simple task manager that allows users
+                to add, remove, and track their tasks.
+            </p>
+            
+            <div class="code-preview">
+                <h3>Task Manager Application</h3>
+                <pre><code class="language-python">class TaskManagerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Task Manager")
+        self.root.geometry("500x400")
+        
+        # Task storage
+        self.tasks = []
+        
+        # Create the GUI elements
+        self.create_widgets()
+        
+        # Start the time update 
+        self.update_counter()  # This contains the bug
+    
+    # Rest of application implementation...</code></pre>
+            </div>
+        </section>
+        
+        <section class="bug-fixes">
+            <h2>Bug Fixes</h2>
+            
+            <div class="bug-comparison">
+                <h3>Bug #1: UI Freezing Due to Improper Update Method</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def update_counter(self):
+    while True:
+        current_time = time.strftime("%H:%M:%S")
+        self.time_label.config(text=current_time)
+        time.sleep(1)  # This will freeze the GUI</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: Using an infinite loop with <code>time.sleep()</code> inside a GUI method will freeze the application's main thread, making it unresponsive.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">def update_time(self):
+    current_time = time.strftime("%H:%M:%S")
+    self.time_label.config(text=current_time)
+    # Schedule the next update after 1000ms (1 second)
+    self.root.after(1000, self.update_time)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Using Tkinter's <code>after()</code> method to schedule updates, allowing the main event loop to remain responsive.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bug-impact">
+                    <h4>Impact & Explanation</h4>
+                    <p>This bug makes the entire application freeze as soon as it starts. The issue is related to how GUI event loops work:</p>
+                    <ul>
+                        <li>Tkinter's main thread must remain free to process user interactions</li>
+                        <li>Blocking operations (like infinite loops with sleep) prevent the event loop from running</li>
+                        <li>The correct approach uses the built-in scheduling mechanism that works with the event loop</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #2: Improper Button Command Binding</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python">add_button = tk.Button(entry_frame, text="Add Task", 
+                      bg="#2ecc71", fg="white", 
+                      font=("Arial", 10, "bold"), 
+                      command=self.add_task())</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The <code>command</code> parameter calls the method immediately during widget creation instead of when the button is clicked.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python">add_button = tk.Button(entry_frame, text="Add Task", 
+                      bg="#2ecc71", fg="white", 
+                      font=("Arial", 10, "bold"), 
+                      command=self.add_task)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Passing the method reference without calling it, allowing Tkinter to call it when the button is clicked.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bug-impact">
+                    <h4>Impact & Explanation</h4>
+                    <p>This bug causes two critical issues:</p>
+                    <ul>
+                        <li>The <code>add_task()</code> method is called immediately during interface creation, not when the button is clicked</li>
+                        <li>The button's <code>command</code> is set to the return value of <code>add_task()</code> (likely None), making the button non-functional</li>
+                        <li>This is a common mistake when assigning callbacks in GUI programming</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bug-comparison">
+                <h3>Bug #3: Missing Scrollbar Configuration</h3>
+                <div class="code-comparison">
+                    <div class="buggy-code">
+                        <div class="code-header">
+                            <span class="filename">Buggy Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Create listbox and scrollbar
+self.task_listbox = tk.Listbox(list_frame, font=("Arial", 12), 
+                               selectbackground="#3498db")
+self.task_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# BUG: Not providing a command for scrollbar
+scrollbar = tk.Scrollbar(list_frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The bug: The scrollbar is created but not connected to the listbox, making it non-functional.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="fixed-code">
+                        <div class="code-header">
+                            <span class="filename">Fixed Implementation</span>
+                        </div>
+                        <pre><code class="language-python"># Create listbox and scrollbar
+self.task_listbox = tk.Listbox(list_frame, font=("Arial", 12), 
+                               selectbackground="#3498db")
+self.task_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# FIXED: Properly connecting scrollbar to listbox
+scrollbar = tk.Scrollbar(list_frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+# Connect scrollbar and listbox
+self.task_listbox.config(yscrollcommand=scrollbar.set)
+scrollbar.config(command=self.task_listbox.yview)</code></pre>
+                        <div class="bug-explanation">
+                            <p>The fix: Connecting the scrollbar and listbox widgets through their respective configuration options.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="full-code-section">
+                <h3>Complete Fixed Implementation</h3>
+                <pre><code class="language-python">import tkinter as tk
+from tkinter import messagebox
+import time
+import urllib.request
+import tempfile
+import os
+import socket
+
+class TaskManagerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Task Manager")
+        self.root.geometry("500x400")
+        
+        # FIXED 1: Proper error handling for icon loading
+        try:
+            # Set timeout for connection
+            socket.setdefaulttimeout(10)
+            
+            # Icon URL
+            icon_url = "https://www.iconpacks.net/icons/2/free-task-icon-1659-thumb.png"
+            icon_file = os.path.join(tempfile.gettempdir(), "app_icon.ico")
+            
+            # Try to download with proper error handling
+            urllib.request.urlretrieve(icon_url, icon_file)
+            self.root.iconbitmap(icon_file)
+        except Exception as e:
+            print(f"Could not load icon: {e}")
+            # Continue without icon
+        
+        # Task storage with maximum limit
+        self.tasks = []
+        self.MAX_TASKS = 100  # Prevent memory issues
+        
+        # Create the GUI elements
+        self.create_widgets()
+        
+        # FIXED 2: Using proper after() method for updates
+        self.update_time()
+        
+        # Set up proper window closing
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+    
+    def create_widgets(self):
+        # Header
+        header_frame = tk.Frame(self.root, bg="#3498db")
+        header_frame.pack(fill=tk.X)
+        
+        title_label = tk.Label(header_frame, text="Task Manager", 
+                              font=("Arial", 16, "bold"), 
+                              bg="#3498db", fg="white", pady=10)
+        title_label.pack()
+        
+        # Main content
+        content_frame = tk.Frame(self.root, padx=20, pady=10)
+        content_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Task entry
+        entry_frame = tk.Frame(content_frame)
+        entry_frame.pack(fill=tk.X, pady=10)
+        
+        self.task_entry = tk.Entry(entry_frame, font=("Arial", 12), width=30)
+        self.task_entry.pack(side=tk.LEFT, padx=5)
+        
+        # FIXED 3: Proper button command binding
+        add_button = tk.Button(entry_frame, text="Add Task", 
+                              bg="#2ecc71", fg="white", 
+                              font=("Arial", 10, "bold"), 
+                              command=self.add_task)
+        add_button.pack(side=tk.LEFT, padx=5)
+        
+        clear_button = tk.Button(entry_frame, text="Clear All", 
+                                bg="#e74c3c", fg="white", 
+                                font=("Arial", 10, "bold"), 
+                                command=self.clear_tasks)
+        clear_button.pack(side=tk.LEFT, padx=5)
+        
+        # Task list
+        list_frame = tk.Frame(content_frame)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.task_listbox = tk.Listbox(list_frame, font=("Arial", 12), 
+                                      selectbackground="#3498db")
+        self.task_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # FIXED 4: Properly connecting scrollbar to listbox
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Connect scrollbar and listbox
+        self.task_listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=self.task_listbox.yview)
+        
+        # Status bar
+        self.status_frame = tk.Frame(self.root, bg="#f1f1f1")
+        self.status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        
+        self.counter_label = tk.Label(self.status_frame, text="Tasks: 0", 
+                                     bg="#f1f1f1", font=("Arial", 10), pady=5)
+        self.counter_label.pack(side=tk.LEFT, padx=10)
+        
+        self.time_label = tk.Label(self.status_frame, text="", 
+                                  bg="#f1f1f1", font=("Arial", 10), pady=5)
+        self.time_label.pack(side=tk.RIGHT, padx=10)
+    
+    # FIXED 6&7: Added limit to stored tasks and validation
+    def add_task(self):
+        task = self.task_entry.get().strip()
+        
+        # FIXED: Added validation for empty input
+        if not task:
+            messagebox.showwarning("Empty Task", 
+                                  "Please enter a task description.")
+            return
+            
+        if len(self.tasks) >= self.MAX_TASKS:
+            messagebox.showwarning("Task Limit Reached", 
+                                  f"Maximum number of tasks ({self.MAX_TASKS}) reached.")
+            return
+            
+        self.tasks.append(task)
+        self.task_listbox.insert(tk.END, task)
+        self.counter_label.config(text=f"Tasks: {len(self.tasks)}")
+        
+        # FIXED 5: Clear entry field after adding task
+        self.task_entry.delete(0, tk.END)
+    
+    def clear_tasks(self):
+        self.task_listbox.delete(0, tk.END)
+        self.tasks = []
+        self.counter_label.config(text="Tasks: 0")
+    
+    # FIXED 8: Efficient update method using after()
+    def update_time(self):
+        current_time = time.strftime("%H:%M:%S")
+        self.time_label.config(text=current_time)
+        # Schedule the next update after 1000ms (1 second)
+        self.root.after(1000, self.update_time)
+    
+    # FIXED 10: Proper resource cleanup on window closure
+    def on_close(self):
+        # Add any cleanup code here
+        self.root.destroy()
+
+# FIXED 9: Added proper entry point guard
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TaskManagerApp(root)
+    root.mainloop()</code></pre>
+            </div>
+        </section>
+        
+        <section class="best-practices">
+            <h2>Best Practices for GUI Applications</h2>
+            
+            <div class="practices-list">
+                <div class="practice-item">
+                    <h3>Keep the Main Thread Responsive</h3>
+                    <p>Never use blocking operations like <code>time.sleep()</code> in the main thread. Use event scheduling methods like <code>after()</code> instead.</p>
+                    <pre><code class="language-python"># CORRECT
+def periodic_task(self):
+    # Do something
+    self.root.after(1000, self.periodic_task)
+
+# INCORRECT
+def blocking_task(self):
+    while True:
+        # Do something
+        time.sleep(1)</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Proper Widget Connections</h3>
+                    <p>Always connect related widgets (like scrollbars and listboxes) through their configuration methods.</p>
+                    <pre><code class="language-python"># CORRECT
+listbox.config(yscrollcommand=scrollbar.set)
+scrollbar.config(command=listbox.yview)
+
+# INCORRECT
+# Creating scrollbar without connecting it
+scrollbar = tk.Scrollbar(frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)</code></pre>
+                </div>
+                
+                <div class="practice-item">
+                    <h3>Event Handler References</h3>
+                    <p>Pass event handler methods as references, not calls, when setting up buttons and other interactive widgets.</p>
+                    <pre><code class="language-python"># CORRECT
+button = tk.Button(frame, command=self.handler)
+
+# INCORRECT
+button = tk.Button(frame, command=self.handler())</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <section class="contact-section">
+            <h2>Need Help With Your GUI Application?</h2>
+            <p>
+                I specialize in fixing and optimizing Python GUI applications.
+                Contact me to discuss your project!
+            </p>
+            <div class="contact-info">
+                <p><strong>Fiverr:</strong> <a href="https://www.fiverr.com/rehansajid099" target="_blank">rehansajid099</a></p>
+                <p><strong>Email:</strong> <a href="mailto:sajidnadeem2030@gmail.com">sajidnadeem2030@gmail.com</a></p>
+            </div>
+            <a href="../index.html" class="back-button">Back to All Examples</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Python Debugging Portfolio | rehansajid099</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+</html>

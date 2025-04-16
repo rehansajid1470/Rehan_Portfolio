@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /assets/
+Disallow: /admin/
+
+# Prevent crawling of unfinished pages
+Disallow: /templates/
+Disallow: /drafts/
+
+# Sitemaps
+Sitemap: https://www.example.com/sitemap.xml 
